@@ -4,6 +4,7 @@ import { apiRequest } from '@/lib/queryClient';
 import { Link } from 'wouter';
 import type { Campaign, Message } from '@shared/schema';
 import { speakText, stopSpeech, isSpeaking } from '@/lib/tts';
+import { Prefs } from '@/lib/preferences';
 import { useTheme } from '@/components/ThemeProvider';
 import CharacterPanel from '@/components/CharacterPanel';
 import CaveProgress from '@/components/CaveProgress';
@@ -18,6 +19,104 @@ import { Separator } from '@/components/ui/separator';
 import {
   Send, Volume2, VolumeX, Settings, RotateCcw, Sword, BookOpen, Moon, Sun, Mic, MicOff, Scroll
 } from 'lucide-react';
+
+// ── Demo Mode Scripts ────────────────────────────────────────────────────────
+const DEMO_STEPS = [
+  {
+    player: '',  // No player message for opening
+    dm: `# THE CAVES OF CHAOS
+
+*The morning mist clings low to the ravine floor as your party stands before Cave A — the Kobold Lair. The limestone entrance yawns like a wound in the rock face, carved dark with old smoke and older stains.*
+
+*Inside: the skittering sound of something small, quick, and very much awake.*
+
+Gideon tilts his head toward the opening. One hand finds his shortsword without thinking. "Smells like wet dog and bad decisions," he mutters.
+
+Zella doesn't argue. Her staff tip glows faintly. She's already calculating.
+
+---
+
+**Two things are immediately apparent:**
+
+**First** — the moment you step past that oval mouth, you will be in complete darkness. The cave swallows natural light within a few feet. You'll need Zella's *Light* cantrip, or another solution.
+
+**Second** — whatever lives here is active. Not sleeping. Not hiding. Going about its business, entirely unaware of you.
+
+*That could be an advantage. Or a warning.*
+
+What do Gideon and Zella do?`,
+  },
+  {
+    player: 'Gideon scouts ahead quietly into the dark. I rolled a 14 on Stealth.',
+    dm: `*A 14 is more than enough. Gideon slips into the darkness like smoke — his Halfling feet barely whisper on the stone.*
+
+Twelve feet in, crouched behind a stalagmite, he spots them:
+
+**Three kobolds** gathered around a crude fire pit. Copper-scaled, armed with bone-handled daggers and short spears. The lead one — the biggest, which isn't saying much — is gnawing on something that used to be a rat.
+
+They haven't spotted him.
+
+---
+
+**⚔️ Sneak Attack available** — Gideon has full surprise advantage on the first round.
+
+*The lead kobold is 8 feet away. The other two flank the fire at 15 and 20 feet. Gideon has one clean window before the one on the right turns around.*
+
+Does he signal Zella, or strike alone?`,
+  },
+  {
+    player: 'Gideon attacks the lead kobold! I rolled 17 to hit, 5 damage plus 4 Sneak Attack — 9 total.',
+    dm: `*17 hits — kobold AC is 12. 9 damage drops the creature instantly.*
+
+**⚔️ COMBAT — Round 1**
+
+Gideon erupts from shadow. The lead kobold has time to register surprise — that's all — before the shortsword finds the gap in its scales. It crumples with a wet cough, spear clattering on stone.
+
+The other two spin. Slings come up. Eyes go wide with something between fury and terror.
+
+---
+
+**Initiative order:**
+- 🗡️ Gideon: **18** *(acts first)*
+- ✨ Zella: **12**
+- Kobold B: 9
+- Kobold C: 6
+
+**Zella's turn** — she has two options before the kobolds act:
+- 💜 ***Sleep*** (spell slot) — potentially ends the fight instantly
+- 🔥 ***Fire Bolt*** (cantrip) — 1d10 damage, no slot spent
+
+What does Zella do?`,
+  },
+  {
+    player: 'Zella casts Sleep! I rolled a 9 on the hit point total.',
+    dm: `*9 hit points of creatures fall into magical slumber.*
+
+Both remaining kobolds drop. Face-first. Snoring.
+
+The cave goes quiet — just the crackle of the fire and the sound of two kobolds sawing logs on the stone floor.
+
+Gideon stares at them. Then at Zella.
+
+*"That's actually terrifying,"* he says.
+
+---
+
+**Zella:** HP 7/7 · Spell Slots: **1/2** remaining
+
+**💰 Searching the bodies:**
+- **7 gold pieces** — split between tattered belt pouches
+- **A crude hide map** — shows two tunnels branching deeper into Cave A. Claw marks indicate something larger beyond the eastern passage.
+
+The fire crackles. The eastern tunnel breathes cold air that smells of iron and something animal.
+
+*The Caves of Chaos go deeper. You've only just begun.*
+
+---
+
+*— End of demo — Start your own adventure to continue the story.*`,
+  },
+];
 
 // Render DM response with formatting
 function renderContent(text: string): React.ReactNode {
@@ -93,9 +192,14 @@ export default function GamePage() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [ttsActive, setTtsActive] = useState(false);
   const [ttsEnabled, setTtsEnabled] = useState(true);
-  const [ttsVoice, setTtsVoice] = useState<'browser' | 'elevenlabs'>('browser');
   const [rightPanel, setRightPanel] = useState<'combat' | 'dice' | 'caves'>('caves');
   const abortRef = useRef<AbortController | null>(null);
+
+  // Demo mode
+  const [isDemoMode, setIsDemoMode] = useState(false);
+  const [demoStep, setDemoStep] = useState(0);
+  const [demoMessages, setDemoMessages] = useState<Array<{role: 'player'|'dm', content: string}>>([]);
+  const demoRunning = useRef(false);
 
   // Campaign state
   const { data: campaign, isLoading: campaignLoading } = useQuery<Campaign>({
@@ -117,15 +221,95 @@ export default function GamePage() {
   // Auto-speak last DM message when it arrives
   const speakDMMessage = useCallback(async (text: string) => {
     if (!ttsEnabled) return;
+    const p = Prefs.voice;
     setTtsActive(true);
     await speakText(text, {
-      voice: ttsVoice,
+      voice: p.provider as any,
+      voiceName: p.elevenLabsVoice,
+      speechifyKey: p.speechifyKey,
+      speechifyVoiceId: p.speechifyVoiceId,
       rate: 0.9,
       pitch: 0.85,
       onEnd: () => setTtsActive(false),
       onError: () => setTtsActive(false),
     });
-  }, [ttsEnabled, ttsVoice]);
+  }, [ttsEnabled]);
+
+  // Demo mode: stream a pre-scripted DM response
+  const runDemoStep = useCallback(async (step: number) => {
+    if (!demoRunning.current) return;
+    const exchange = DEMO_STEPS[step];
+    if (!exchange) return;
+
+    // Show player action (if any) instantly
+    if (exchange.player) {
+      setDemoMessages(prev => [...prev, { role: 'player', content: exchange.player }]);
+    }
+
+    // Stream DM response word-by-word
+    setIsStreaming(true);
+    setStreamingText('');
+    const words = exchange.dm.split(/( )/);  // split but keep spaces
+    let acc = '';
+    for (const word of words) {
+      if (!demoRunning.current) break;
+      acc += word;
+      setStreamingText(acc);
+      await new Promise(r => setTimeout(r, word.trim() ? 18 : 5));
+    }
+    setStreamingText('');
+    setIsStreaming(false);
+    if (!demoRunning.current) return;
+    setDemoMessages(prev => [...prev, { role: 'dm', content: exchange.dm }]);
+    setDemoStep(step + 1);
+
+    // Narrate
+    if (ttsEnabled) {
+      const p = Prefs.voice;
+      setTtsActive(true);
+      speakText(exchange.dm, {
+        voice: p.provider as any,
+        voiceName: p.elevenLabsVoice,
+        speechifyKey: p.speechifyKey,
+        speechifyVoiceId: p.speechifyVoiceId,
+        rate: 0.9,
+        pitch: 0.85,
+        onEnd: () => setTtsActive(false),
+        onError: () => setTtsActive(false),
+      });
+    }
+  }, [ttsEnabled]);
+
+  const startDemo = useCallback(() => {
+    demoRunning.current = true;
+    setIsDemoMode(true);
+    setDemoStep(0);
+    setDemoMessages([]);
+    setStreamingText('');
+    runDemoStep(0);
+  }, [runDemoStep]);
+
+  const advanceDemo = useCallback(() => {
+    if (demoStep < DEMO_STEPS.length) {
+      runDemoStep(demoStep);
+    } else {
+      demoRunning.current = false;
+      setIsDemoMode(false);
+      setDemoMessages([]);
+      setDemoStep(0);
+    }
+  }, [demoStep, runDemoStep]);
+
+  const exitDemo = useCallback(() => {
+    demoRunning.current = false;
+    stopSpeech();
+    setIsDemoMode(false);
+    setDemoMessages([]);
+    setDemoStep(0);
+    setStreamingText('');
+    setIsStreaming(false);
+    setTtsActive(false);
+  }, []);
 
   // Send player message
   const sendMessage = useCallback(async () => {
@@ -369,8 +553,8 @@ export default function GamePage() {
         <main className="flex-1 flex flex-col overflow-hidden">
           <ScrollArea className="flex-1 px-4 py-4">
             <div className="max-w-2xl mx-auto space-y-4 pb-4">
-              {/* Welcome state */}
-              {messages.length === 0 && !streamingText && (
+              {/* Welcome state (no messages, not in demo) */}
+              {!isDemoMode && messages.length === 0 && !streamingText && (
                 <div className="text-center py-12 space-y-4">
                   <ChroniclerLogo className="w-20 h-20 mx-auto logo-glow torch-flicker" />
                   <div className="space-y-2">
@@ -380,7 +564,19 @@ export default function GamePage() {
                       When you're ready — speak your first action, or ask The Chronicler to begin.
                     </p>
                   </div>
-                  <div className="flex flex-wrap gap-2 justify-center">
+                  {/* Demo button */}
+                  <div>
+                    <button
+                      onClick={startDemo}
+                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-stone-900 font-display text-sm tracking-wide transition-colors glow-gold"
+                      data-testid="button-start-demo"
+                    >
+                      <Scroll className="h-4 w-4" />
+                      Watch the Demo
+                    </button>
+                    <p className="text-xs text-muted-foreground mt-2">See a scripted adventure with full narration — no setup needed</p>
+                  </div>
+                  <div className="flex flex-wrap gap-2 justify-center pt-1">
                     {[
                       'Begin the adventure',
                       'We search for traps at the entrance',
@@ -400,8 +596,81 @@ export default function GamePage() {
                 </div>
               )}
 
-              {/* Message history */}
-              {messages.map((msg, idx) => (
+              {/* Demo mode messages */}
+              {isDemoMode && (
+                <>
+                  {/* Demo banner */}
+                  <div className="flex items-center justify-between bg-amber-950/30 border border-amber-800/40 rounded-lg px-3 py-2">
+                    <div className="flex items-center gap-2">
+                      <Scroll className="h-3.5 w-3.5 text-amber-500" />
+                      <span className="font-display text-amber-400 text-xs tracking-wide">DEMO MODE</span>
+                      <span className="text-muted-foreground text-xs">— scripted session, no API key needed</span>
+                    </div>
+                    <button
+                      onClick={exitDemo}
+                      className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                      data-testid="button-exit-demo"
+                    >
+                      Exit ×
+                    </button>
+                  </div>
+
+                  {/* Demo messages */}
+                  {demoMessages.map((msg, idx) =>
+                    msg.role === 'player' ? (
+                      <div key={idx} className="flex justify-end message-enter">
+                        <div className="max-w-xs lg:max-w-md">
+                          <div className="bg-stone-700 rounded-lg px-4 py-2.5 text-sm text-foreground">
+                            {msg.content}
+                          </div>
+                          <p className="text-xs text-muted-foreground text-right mt-1">You</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div key={idx} className="flex items-start gap-3 message-enter">
+                        <div className="w-7 h-7 rounded-full bg-amber-900/50 border border-amber-700/50 flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <Scroll className="h-3.5 w-3.5 text-amber-500" />
+                        </div>
+                        <div className="flex-1 stone-panel rounded-lg p-4 text-sm dm-content">
+                          <div className="narration text-foreground/90">
+                            {renderContent(msg.content)}
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  )}
+
+                  {/* Advance / End Demo button */}
+                  {!isStreaming && !ttsActive && demoMessages.length > 0 && (
+                    <div className="text-center pt-2">
+                      {demoStep < DEMO_STEPS.length ? (
+                        <button
+                          onClick={advanceDemo}
+                          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-stone-900 font-display text-sm tracking-wide transition-colors"
+                          data-testid="button-demo-next"
+                        >
+                          Continue →
+                        </button>
+                      ) : (
+                        <div className="space-y-3">
+                          <p className="text-muted-foreground text-sm">The demo is complete.</p>
+                          <button
+                            onClick={exitDemo}
+                            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-stone-900 font-display text-sm tracking-wide transition-colors glow-gold"
+                            data-testid="button-demo-start-adventure"
+                          >
+                            <Scroll className="h-4 w-4" />
+                            Start Your Own Adventure
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Real message history (hidden during demo) */}
+              {!isDemoMode && messages.map((msg) => (
                 <MessageBubble
                   key={msg.id}
                   message={msg}

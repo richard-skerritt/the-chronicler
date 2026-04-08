@@ -204,27 +204,56 @@ export async function registerRoutes(httpServer: Server, app: Express) {
     }
   });
 
-  // TTS endpoint — generate speech from text using ElevenLabs
+  // TTS endpoint — ElevenLabs or Speechify
   app.post('/api/tts', async (req, res) => {
-    const { text, voice = 'george' } = req.body;
+    const { text, voice = 'james', provider = 'elevenlabs', speechifyKey } = req.body;
     if (!text) return res.status(400).json({ error: 'text required' });
 
+    // ── Speechify ────────────────────────────────────────────────────────────
+    if (provider === 'speechify' && speechifyKey) {
+      try {
+        const sfRes = await fetch('https://api.sws.speechify.com/v1/audio/speech', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${speechifyKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            input: text.substring(0, 3000),
+            voice_id: voice,   // e.g. 'john'
+            model: 'simba-english',
+            audio_format: 'mp3',
+          }),
+        });
+        if (sfRes.ok) {
+          const buf = await sfRes.arrayBuffer();
+          const b64 = Buffer.from(buf).toString('base64');
+          return res.json({ audio: `data:audio/mpeg;base64,${b64}` });
+        }
+        const errText = await sfRes.text().catch(() => sfRes.statusText);
+        console.error('Speechify error:', sfRes.status, errText);
+      } catch (err) {
+        console.error('Speechify request failed:', err);
+      }
+      return res.json({ audio: null, fallback: true });
+    }
+
+    // ── ElevenLabs (via Python helper) ───────────────────────────────────────
     try {
       const { execFile } = await import('child_process');
       const { promisify } = await import('util');
       const execFileAsync = promisify(execFile);
-      const fs = await import('fs');
       const path = await import('path');
 
       const scriptPath = path.join(process.cwd(), 'server', 'tts_helper.py');
-      const { stdout } = await execFileAsync('python3', [scriptPath, text.substring(0, 2000), voice]);
-      
-      // stdout is base64-encoded audio
+      const { stdout } = await execFileAsync('python3', [scriptPath, text.substring(0, 2000), voice], {
+        timeout: 30000,
+      });
+
       const audioBase64 = stdout.trim();
       res.json({ audio: `data:audio/mpeg;base64,${audioBase64}` });
     } catch (err) {
       console.error('TTS error:', err);
-      // Return empty so client falls back to Web Speech API
       res.json({ audio: null, fallback: true });
     }
   });

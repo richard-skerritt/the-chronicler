@@ -8,8 +8,19 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import ChroniclerLogo from '@/components/ChroniclerLogo';
-import { ArrowLeft, Save, RotateCcw } from 'lucide-react';
+import { ArrowLeft, Save, RotateCcw, Volume2, Check } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { Prefs, type VoiceProvider } from '@/lib/preferences';
+
+// ElevenLabs narrator voices (male, cinematic)
+const ELEVENLABS_VOICES = [
+  { id: 'james',   label: 'James',   desc: 'Deep, authoritative narrator' },
+  { id: 'george',  label: 'George',  desc: 'Rich baritone storyteller' },
+  { id: 'daniel',  label: 'Daniel',  desc: 'Smooth, clear narrator' },
+  { id: 'brian',   label: 'Brian',   desc: 'Calm, measured tone' },
+  { id: 'callum',  label: 'Callum',  desc: 'Warm, expressive voice' },
+  { id: 'harry',   label: 'Harry',   desc: 'Dramatic, powerful delivery' },
+];
 
 export default function SettingsPage() {
   const { toast } = useToast();
@@ -22,6 +33,13 @@ export default function SettingsPage() {
   const [gideonGold, setGideonGold] = useState('');
   const [zellaGold, setZellaGold] = useState('');
   const [location, setLocation] = useState('');
+
+  // Voice settings (pulled from prefs singleton)
+  const [voiceProvider, setVoiceProviderState] = useState<VoiceProvider>(Prefs.voice.provider);
+  const [elVoice, setElVoiceState] = useState(Prefs.voice.elevenLabsVoice);
+  const [sfKey, setSfKeyState] = useState(Prefs.voice.speechifyKey);
+  const [sfVoiceId, setSfVoiceIdState] = useState(Prefs.voice.speechifyVoiceId);
+  const [testingVoice, setTestingVoice] = useState(false);
 
   const updateMutation = useMutation({
     mutationFn: (data: Partial<Campaign>) =>
@@ -50,6 +68,31 @@ export default function SettingsPage() {
       toast({ title: 'Session reset', description: 'HP and spell slots restored.' });
     },
   });
+
+  const saveVoice = () => {
+    Prefs.setProvider(voiceProvider);
+    Prefs.setElevenLabsVoice(elVoice);
+    Prefs.setSpeechifyKey(sfKey);
+    Prefs.setSpeechifyVoiceId(sfVoiceId);
+    toast({ title: 'Voice saved', description: `Using ${voiceProvider === 'speechify' ? 'Speechify' : voiceProvider === 'elevenlabs' ? 'ElevenLabs' : 'browser'} voice.` });
+  };
+
+  const testVoice = async () => {
+    setTestingVoice(true);
+    try {
+      const { speakText } = await import('@/lib/tts');
+      await speakText('The caves stretch before you, dark and full of promise. Welcome, adventurer.', {
+        voice: voiceProvider,
+        voiceName: elVoice,
+        speechifyKey: sfKey,
+        speechifyVoiceId: sfVoiceId,
+        onEnd: () => setTestingVoice(false),
+        onError: () => setTestingVoice(false),
+      });
+    } catch {
+      setTestingVoice(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background stone-texture">
@@ -111,8 +154,126 @@ export default function SettingsPage() {
 
         <Separator className="bg-stone-800 mb-6" />
 
-        {/* Manual Overrides */}
+        {/* ── VOICE SETTINGS ── */}
         <div className="space-y-6">
+          <div>
+            <h2 className="font-display text-amber-300 text-sm tracking-widest mb-1">NARRATOR VOICE</h2>
+            <p className="text-muted-foreground text-xs mb-4">
+              Choose how The Chronicler speaks. ElevenLabs voices are high-quality AI narrators. Speechify requires your API key.
+            </p>
+
+            {/* Provider tabs */}
+            <div className="flex gap-2 mb-4">
+              {(['elevenlabs', 'speechify', 'browser'] as VoiceProvider[]).map(p => (
+                <button
+                  key={p}
+                  onClick={() => setVoiceProviderState(p)}
+                  className={`px-3 py-1.5 rounded text-xs font-display tracking-wide transition-colors ${
+                    voiceProvider === p
+                      ? 'bg-amber-600 text-stone-900'
+                      : 'bg-stone-800 text-muted-foreground hover:text-foreground'
+                  }`}
+                  data-testid={`button-provider-${p}`}
+                >
+                  {p === 'elevenlabs' ? 'ElevenLabs' : p === 'speechify' ? 'Speechify' : 'Browser'}
+                </button>
+              ))}
+            </div>
+
+            {/* ElevenLabs voice picker */}
+            {voiceProvider === 'elevenlabs' && (
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground mb-2">Select narrator voice:</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {ELEVENLABS_VOICES.map(v => (
+                    <button
+                      key={v.id}
+                      onClick={() => setElVoiceState(v.id)}
+                      className={`p-2.5 rounded border text-left transition-colors ${
+                        elVoice === v.id
+                          ? 'border-amber-600 bg-amber-950/30 text-foreground'
+                          : 'border-stone-700 bg-stone-900/40 text-muted-foreground hover:border-stone-600'
+                      }`}
+                      data-testid={`button-voice-${v.id}`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-display text-xs tracking-wide">{v.label}</span>
+                        {elVoice === v.id && <Check className="h-3 w-3 text-amber-400" />}
+                      </div>
+                      <p className="text-xs opacity-60 mt-0.5">{v.desc}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Speechify settings */}
+            {voiceProvider === 'speechify' && (
+              <div className="space-y-3">
+                <div className="bg-amber-950/20 border border-amber-800/30 rounded p-3 text-xs text-amber-300/80">
+                  Get your API key from{' '}
+                  <a href="https://studio.speechify.com" target="_blank" rel="noopener noreferrer"
+                    className="underline text-amber-400">studio.speechify.com</a>
+                  {' '}→ API Settings. The "John" voice ID is <code className="bg-stone-800 px-1 rounded">john</code>.
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground font-display">Speechify API Key</Label>
+                  <Input
+                    type="password"
+                    placeholder="sk-..."
+                    value={sfKey}
+                    onChange={e => setSfKeyState(e.target.value)}
+                    className="bg-input border-stone-700 h-8 text-sm font-mono"
+                    data-testid="input-speechify-key"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground font-display">Voice ID</Label>
+                  <Input
+                    placeholder="john"
+                    value={sfVoiceId}
+                    onChange={e => setSfVoiceIdState(e.target.value)}
+                    className="bg-input border-stone-700 h-8 text-sm"
+                    data-testid="input-speechify-voice-id"
+                  />
+                  <p className="text-xs text-muted-foreground">Common IDs: john, jane, ryan, oliver</p>
+                </div>
+              </div>
+            )}
+
+            {/* Browser info */}
+            {voiceProvider === 'browser' && (
+              <p className="text-xs text-muted-foreground">
+                Uses your browser's built-in text-to-speech engine. Quality varies by browser — Chrome on desktop gives the best results.
+              </p>
+            )}
+
+            {/* Test + Save buttons */}
+            <div className="flex gap-2 mt-4">
+              <Button
+                onClick={testVoice}
+                disabled={testingVoice}
+                variant="outline"
+                className="border-stone-700 text-muted-foreground hover:text-amber-400 font-display text-xs"
+                data-testid="button-test-voice"
+              >
+                <Volume2 className="h-3.5 w-3.5 mr-1.5" />
+                {testingVoice ? 'Speaking...' : 'Test Voice'}
+              </Button>
+              <Button
+                onClick={saveVoice}
+                className="bg-amber-600 hover:bg-amber-500 text-stone-900 font-display tracking-wide text-xs glow-gold"
+                data-testid="button-save-voice"
+              >
+                <Save className="h-3.5 w-3.5 mr-1.5" />
+                Save Voice
+              </Button>
+            </div>
+          </div>
+
+          <Separator className="bg-stone-800" />
+
+          {/* Manual Overrides */}
           <div>
             <h2 className="font-display text-amber-300 text-sm tracking-widest mb-4">MANUAL OVERRIDES</h2>
             <p className="text-muted-foreground text-xs mb-4">
@@ -229,8 +390,8 @@ export default function SettingsPage() {
             <h2 className="font-display text-amber-300 text-sm tracking-widest mb-3">ABOUT THE CHRONICLER</h2>
             <div className="space-y-2 text-sm text-muted-foreground leading-relaxed">
               <p>The Chronicler is an AI-powered Game Master for tabletop RPG adventures. Players use physical game components — maps, tokens, and dice — while The Chronicler handles narration, NPC roleplay, rules adjudication, and immersive storytelling.</p>
-              <p className="text-xs">Built with Claude AI (Anthropic) · ElevenLabs TTS · React + Express</p>
-              <p className="text-xs text-amber-500/60">Based on the D&D Heroes of the Borderlands (2025 Starter Set) campaign</p>
+              <p className="text-xs">Built with Claude AI (Anthropic) · ElevenLabs TTS · Speechify · React + Express</p>
+              <p className="text-xs text-amber-500/60">Based on the D&amp;D Heroes of the Borderlands (2025 Starter Set) campaign</p>
             </div>
           </div>
         </div>
