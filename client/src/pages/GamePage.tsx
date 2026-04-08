@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
-import { Link } from 'wouter';
+import { Link, useLocation } from 'wouter';
 import type { Campaign, Message } from '@shared/schema';
 import { speakText, stopSpeech, isSpeaking } from '@/lib/tts';
 import { Prefs } from '@/lib/preferences';
@@ -218,6 +218,14 @@ export default function GamePage() {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, streamingText]);
 
+  // Auto-start demo when navigated to /demo route
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash === '#/demo' && !isDemoMode && messages.length === 0 && !campaignLoading) {
+      startDemo();
+    }
+  }, [campaignLoading]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Auto-speak last DM message when it arrives
   const speakDMMessage = useCallback(async (text: string) => {
     if (!ttsEnabled) return;
@@ -383,11 +391,21 @@ export default function GamePage() {
   };
 
   // Reset session
+  const [, navigate] = useLocation();
+
   const resetMutation = useMutation({
     mutationFn: () => apiRequest('POST', '/api/campaign/reset'),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['/api/campaign'] });
       qc.invalidateQueries({ queryKey: ['/api/messages', campaign?.id] });
+    },
+  });
+
+  const newGameMutation = useMutation({
+    mutationFn: () => apiRequest('POST', '/api/campaign/new-game'),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['/api/campaign'] });
+      navigate('/create');
     },
   });
 
@@ -526,9 +544,9 @@ export default function GamePage() {
               <Button
                 variant="ghost"
                 size="sm"
-                className="w-full justify-start text-xs text-muted-foreground hover:text-amber-400 h-7"
+                className="w-full justify-start text-xs text-muted-foreground hover:text-orange-400 h-7"
                 onClick={() => {
-                  if (confirm('Reset HP and spell slots for a new session?')) {
+                  if (confirm('Reset HP and spell slots, keep your characters?')) {
                     resetMutation.mutate();
                   }
                 }}
@@ -536,6 +554,20 @@ export default function GamePage() {
               >
                 <RotateCcw className="h-3 w-3 mr-1.5" />
                 New Session
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full justify-start text-xs text-muted-foreground hover:text-red-400 h-7"
+                onClick={() => {
+                  if (confirm('Start a completely new adventure? This clears all progress and returns to character creation.')) {
+                    newGameMutation.mutate();
+                  }
+                }}
+                data-testid="button-new-game"
+              >
+                <Sword className="h-3 w-3 mr-1.5" />
+                New Game
               </Button>
             </div>
           </div>
@@ -556,25 +588,32 @@ export default function GamePage() {
               {/* Welcome state (no messages, not in demo) */}
               {!isDemoMode && messages.length === 0 && !streamingText && (
                 <div className="text-center py-12 space-y-4">
-                  <ChroniclerLogo className="w-20 h-20 mx-auto logo-glow torch-flicker" />
+                  <ChroniclerLogo className="w-20 h-20 mx-auto torch-flicker" style={{ filter: 'drop-shadow(0 0 18px hsl(18 90% 52% / 0.7))' }} />
                   <div className="space-y-2">
-                    <h2 className="font-display text-amber-400 text-xl tracking-wider">The Adventure Awaits</h2>
-                    <p className="text-muted-foreground text-sm max-w-md mx-auto leading-relaxed">
-                      Place your party tokens at the entrance to Cave A. The map is on the table.
-                      When you're ready — speak your first action, or ask The Chronicler to begin.
+                    <h2 className="font-display text-xl tracking-wider" style={{ color: 'hsl(18 80% 58%)' }}>The Adventure Awaits</h2>
+                    <p className="text-sm max-w-md mx-auto leading-relaxed" style={{ color: 'hsl(38 16% 52%)' }}>
+                      {campaign?.gameMode === 'custom' && campaign?.char1
+                        ? `Your party is assembled and ready. Speak your first action to begin.`
+                        : 'Place your party tokens at Cave A. When ready — speak your first action, or ask The Chronicler to begin.'}
                     </p>
                   </div>
                   {/* Demo button */}
                   <div>
                     <button
                       onClick={startDemo}
-                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-stone-900 font-display text-sm tracking-wide transition-colors glow-gold"
+                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg font-display text-sm tracking-wide transition-all duration-200"
+                      style={{
+                        background: 'linear-gradient(135deg, hsl(18 90% 46%), hsl(0 72% 40%))',
+                        color: 'hsl(38 28% 94%)',
+                        border: '1px solid hsl(18 90% 55% / 0.5)',
+                        boxShadow: '0 0 18px hsl(18 90% 52% / 0.3)',
+                      }}
                       data-testid="button-start-demo"
                     >
                       <Scroll className="h-4 w-4" />
                       Watch the Demo
                     </button>
-                    <p className="text-xs text-muted-foreground mt-2">See a scripted adventure with full narration — no setup needed</p>
+                    <p className="text-xs mt-2" style={{ color: 'hsl(38 12% 40%)' }}>See a scripted adventure with full narration — no setup needed</p>
                   </div>
                   <div className="flex flex-wrap gap-2 justify-center pt-1">
                     {[
@@ -586,7 +625,8 @@ export default function GamePage() {
                       <button
                         key={suggestion}
                         onClick={() => { setInput(suggestion); inputRef.current?.focus(); }}
-                        className="text-xs px-3 py-1.5 rounded-full border border-stone-700 text-muted-foreground hover:border-amber-600 hover:text-amber-400 transition-colors"
+                        className="text-xs px-3 py-1.5 rounded-full border transition-colors"
+                        style={{ borderColor: 'hsl(28 12% 22%)', color: 'hsl(38 14% 46%)' }}
                         data-testid={`button-suggestion-${suggestion.substring(0, 10)}`}
                       >
                         {suggestion}

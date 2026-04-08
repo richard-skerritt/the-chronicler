@@ -1,9 +1,9 @@
 import type { Express } from 'express';
-import type { Server } from 'http';
+import type { Server } from 'http'  ;
 import Anthropic from '@anthropic-ai/sdk';
 import { storage } from './storage';
 import { buildSystemPrompt } from './systemPrompt';
-import type { StateUpdate } from '@shared/schema';
+import type { StateUpdate, CharacterData } from '@shared/schema';
 
 const client = new Anthropic();
 
@@ -11,11 +11,7 @@ const client = new Anthropic();
 function extractStateUpdate(content: string): StateUpdate | null {
   const match = content.match(/\[\[STATE:(.*?):STATE\]\]/s);
   if (!match) return null;
-  try {
-    return JSON.parse(match[1]);
-  } catch {
-    return null;
-  }
+  try { return JSON.parse(match[1]); } catch { return null; }
 }
 
 // Strip state update markers from display content
@@ -23,8 +19,55 @@ function cleanContent(content: string): string {
   return content.replace(/\[\[STATE:.*?:STATE\]\]/s, '').trim();
 }
 
+// Apply a StateUpdate object to a campaign in the DB
+function applyStateUpdate(campaignId: number, stateUpdate: StateUpdate, existingCampaign: Record<string, unknown>) {
+  const u: Record<string, unknown> = {};
+  if (stateUpdate.gideonHp          !== undefined) u.gideonHp          = stateUpdate.gideonHp;
+  if (stateUpdate.gideonMaxHp       !== undefined) u.gideonMaxHp       = stateUpdate.gideonMaxHp;
+  if (stateUpdate.gideonGold        !== undefined) u.gideonGold        = stateUpdate.gideonGold;
+  if (stateUpdate.zellaHp           !== undefined) u.zellaHp           = stateUpdate.zellaHp;
+  if (stateUpdate.zellaMaxHp        !== undefined) u.zellaMaxHp        = stateUpdate.zellaMaxHp;
+  if (stateUpdate.zellaGold         !== undefined) u.zellaGold         = stateUpdate.zellaGold;
+  if (stateUpdate.zellaSpellSlots   !== undefined) u.zellaSpellSlots   = stateUpdate.zellaSpellSlots;
+  if (stateUpdate.currentLocation   !== undefined) u.currentLocation   = stateUpdate.currentLocation;
+  if (stateUpdate.cavesCleared      !== undefined) u.cavesCleared      = JSON.stringify(stateUpdate.cavesCleared);
+  if (stateUpdate.partyLevel        !== undefined) u.partyLevel        = stateUpdate.partyLevel;
+  if (stateUpdate.inCombat          !== undefined) u.inCombat          = stateUpdate.inCombat;
+  if (stateUpdate.sessionNotes      !== undefined) u.sessionNotes      = stateUpdate.sessionNotes;
+  if (stateUpdate.combatState       !== undefined) u.combatState       = stateUpdate.combatState ? JSON.stringify(stateUpdate.combatState) : null;
+
+  // Custom character HP / spell slots — patch the JSON blob
+  if (stateUpdate.char1Hp !== undefined || stateUpdate.char1SpellSlots !== undefined || stateUpdate.char1Gold !== undefined) {
+    const raw = existingCampaign.char1 as string | null;
+    if (raw) {
+      try {
+        const c: CharacterData = JSON.parse(raw);
+        if (stateUpdate.char1Hp !== undefined)         c.hp          = stateUpdate.char1Hp;
+        if (stateUpdate.char1SpellSlots !== undefined) c.spellSlots  = stateUpdate.char1SpellSlots;
+        if (stateUpdate.char1Gold !== undefined)       c.gold        = stateUpdate.char1Gold;
+        u.char1 = JSON.stringify(c);
+      } catch {}
+    }
+  }
+  if (stateUpdate.char2Hp !== undefined || stateUpdate.char2SpellSlots !== undefined || stateUpdate.char2Gold !== undefined) {
+    const raw = existingCampaign.char2 as string | null;
+    if (raw) {
+      try {
+        const c: CharacterData = JSON.parse(raw);
+        if (stateUpdate.char2Hp !== undefined)         c.hp          = stateUpdate.char2Hp;
+        if (stateUpdate.char2SpellSlots !== undefined) c.spellSlots  = stateUpdate.char2SpellSlots;
+        if (stateUpdate.char2Gold !== undefined)       c.gold        = stateUpdate.char2Gold;
+        u.char2 = JSON.stringify(c);
+      } catch {}
+    }
+  }
+
+  if (Object.keys(u).length > 0) storage.updateCampaign(campaignId, u);
+}
+
 export async function registerRoutes(httpServer: Server, app: Express) {
-  // Get campaign state
+
+  // ── Campaign state ────────────────────────────────────────────────────────
   app.get('/api/campaign', (req, res) => {
     try {
       const campaign = storage.getOrCreateDefaultCampaign();
@@ -34,7 +77,6 @@ export async function registerRoutes(httpServer: Server, app: Express) {
     }
   });
 
-  // Update campaign state
   app.patch('/api/campaign/:id', (req, res) => {
     try {
       const id = parseInt(req.params.id);
@@ -45,22 +87,99 @@ export async function registerRoutes(httpServer: Server, app: Express) {
     }
   });
 
-  // Reset campaign (new session from same starting point)
+  // Reset session — restore HP/slots for the same characters, clear chat
   app.post('/api/campaign/reset', (req, res) => {
     try {
       const campaign = storage.getOrCreateDefaultCampaign();
       storage.clearMessages(campaign.id);
-      const updated = storage.updateCampaign(campaign.id, {
-        gideonHp: campaign.gideonMaxHp,
-        zellaHp: campaign.zellaMaxHp,
+
+      const updateData: Record<string, unknown> = {
+        gideonHp:      campaign.gideonMaxHp,
+        zellaHp:       campaign.zellaMaxHp,
         zellaSpellSlots: campaign.zellaMaxSpellSlots,
+        inCombat:      false,
+        combatState:   null,
+        sessionNotes:  '',
+      };
+
+      // Restore custom character HP/slots if in custom mode
+      if (campaign.gameMode === 'custom') {
+        if (campaign.char1) {
+          try {
+            const c: CharacterData = JSON.parse(campaign.char1);
+            c.hp = c.maxHp;
+            c.spellSlots = c.maxSpellSlots;
+            updateData.char1 = JSON.stringify(c);
+          } catch {}
+        }
+        if (campaign.char2) {
+          try {
+            const c: CharacterData = JSON.parse(campaign.char2);
+            c.hp = c.maxHp;
+            c.spellSlots = c.maxSpellSlots;
+            updateData.char2 = JSON.stringify(c);
+          } catch {}
+        }
+      }
+
+      const updated = storage.updateCampaign(campaign.id, updateData);
+      res.json(updated);
+    } catch (err) {
+      res.status(500).json({ error: 'Failed to reset' });
+    }
+  });
+
+  // New Game — wipes everything, ready for character creation
+  app.post('/api/campaign/new-game', (req, res) => {
+    try {
+      const campaign = storage.getOrCreateDefaultCampaign();
+      storage.clearMessages(campaign.id);
+      const updated = storage.updateCampaign(campaign.id, {
+        // Reset Heroes stats
+        gideonHp: 9, gideonMaxHp: 9, gideonGold: 33,
+        zellaHp: 7, zellaMaxHp: 7, zellaGold: 89,
+        zellaSpellSlots: 2, zellaMaxSpellSlots: 2,
+        // Reset party
+        partyLevel: 1,
+        cavesCleared: '[]',
+        currentLocation: 'Cave A — Entrance',
+        inCombat: false,
+        combatState: null,
+        sessionNotes: '',
+        // Clear custom characters
+        char1: null,
+        char2: null,
+        gameMode: 'heroes',
+      });
+      res.json(updated);
+    } catch (err) {
+      res.status(500).json({ error: 'Failed to start new game' });
+    }
+  });
+
+  // Setup custom characters after character creation
+  app.post('/api/campaign/setup', (req, res) => {
+    try {
+      const { char1, char2 } = req.body as { char1: CharacterData; char2?: CharacterData };
+      if (!char1) return res.status(400).json({ error: 'char1 required' });
+
+      const campaign = storage.getOrCreateDefaultCampaign();
+      storage.clearMessages(campaign.id);
+
+      const updated = storage.updateCampaign(campaign.id, {
+        char1: JSON.stringify(char1),
+        char2: char2 ? JSON.stringify(char2) : null,
+        gameMode: 'custom',
+        partyLevel: 1,
+        cavesCleared: '[]',
+        currentLocation: 'The Adventure Begins',
         inCombat: false,
         combatState: null,
         sessionNotes: '',
       });
       res.json(updated);
     } catch (err) {
-      res.status(500).json({ error: 'Failed to reset' });
+      res.status(500).json({ error: 'Failed to setup campaign' });
     }
   });
 
@@ -75,7 +194,7 @@ export async function registerRoutes(httpServer: Server, app: Express) {
     }
   });
 
-  // Main chat endpoint — send player action, receive DM response
+  // Main chat endpoint — player action → DM response (streaming SSE)
   app.post('/api/chat', async (req, res) => {
     const { message, campaignId } = req.body;
     if (!message || !campaignId) {
@@ -83,29 +202,20 @@ export async function registerRoutes(httpServer: Server, app: Express) {
     }
 
     try {
-      // Get campaign state
       const campaign = storage.getCampaign(campaignId);
       if (!campaign) return res.status(404).json({ error: 'Campaign not found' });
 
-      // Save player message
       const now = Date.now();
       storage.addMessage({ campaignId, role: 'user', content: message, timestamp: now });
 
-      // Build conversation history (last 30 messages)
       const history = storage.getMessages(campaignId, 30);
       const anthropicMessages = history.map(m => ({
         role: m.role as 'user' | 'assistant',
         content: m.content,
       }));
 
-      // If the last message in history is the one we just added (same content), 
-      // don't duplicate it
-      const messagesForApi = anthropicMessages;
-
-      // Build system prompt with current state
       const systemPrompt = buildSystemPrompt(campaign);
 
-      // Stream response from Claude
       res.setHeader('Content-Type', 'text/event-stream');
       res.setHeader('Cache-Control', 'no-cache');
       res.setHeader('Connection', 'keep-alive');
@@ -116,7 +226,7 @@ export async function registerRoutes(httpServer: Server, app: Express) {
         model: 'claude-sonnet-4-6',
         max_tokens: 1500,
         system: systemPrompt,
-        messages: messagesForApi,
+        messages: anthropicMessages,
       });
 
       stream.on('text', (text) => {
@@ -124,12 +234,10 @@ export async function registerRoutes(httpServer: Server, app: Express) {
         res.write(`data: ${JSON.stringify({ type: 'text', content: text })}\n\n`);
       });
 
-      stream.on('message', async (msg) => {
-        // Extract state update if present
+      stream.on('message', async () => {
         const stateUpdate = extractStateUpdate(fullResponse);
         const cleanedResponse = cleanContent(fullResponse);
 
-        // Save assistant message (cleaned)
         storage.addMessage({
           campaignId,
           role: 'assistant',
@@ -137,27 +245,10 @@ export async function registerRoutes(httpServer: Server, app: Express) {
           timestamp: Date.now(),
         });
 
-        // Apply state update if the AI included one
         if (stateUpdate) {
-          const updateData: Partial<typeof campaign> = {};
-          if (stateUpdate.gideonHp !== undefined) updateData.gideonHp = stateUpdate.gideonHp;
-          if (stateUpdate.gideonMaxHp !== undefined) updateData.gideonMaxHp = stateUpdate.gideonMaxHp;
-          if (stateUpdate.gideonGold !== undefined) updateData.gideonGold = stateUpdate.gideonGold;
-          if (stateUpdate.zellaHp !== undefined) updateData.zellaHp = stateUpdate.zellaHp;
-          if (stateUpdate.zellaMaxHp !== undefined) updateData.zellaMaxHp = stateUpdate.zellaMaxHp;
-          if (stateUpdate.zellaGold !== undefined) updateData.zellaGold = stateUpdate.zellaGold;
-          if (stateUpdate.zellaSpellSlots !== undefined) updateData.zellaSpellSlots = stateUpdate.zellaSpellSlots;
-          if (stateUpdate.currentLocation !== undefined) updateData.currentLocation = stateUpdate.currentLocation;
-          if (stateUpdate.cavesCleared !== undefined) updateData.cavesCleared = JSON.stringify(stateUpdate.cavesCleared);
-          if (stateUpdate.partyLevel !== undefined) updateData.partyLevel = stateUpdate.partyLevel;
-          if (stateUpdate.inCombat !== undefined) updateData.inCombat = stateUpdate.inCombat;
-          if (stateUpdate.combatState !== undefined) updateData.combatState = stateUpdate.combatState ? JSON.stringify(stateUpdate.combatState) : null;
-          if (Object.keys(updateData).length > 0) {
-            storage.updateCampaign(campaignId, updateData);
-          }
+          applyStateUpdate(campaignId, stateUpdate, campaign as unknown as Record<string, unknown>);
         }
 
-        // Send final state
         const updatedCampaign = storage.getCampaign(campaignId);
         res.write(`data: ${JSON.stringify({ type: 'done', campaign: updatedCampaign })}\n\n`);
         res.end();
@@ -171,33 +262,19 @@ export async function registerRoutes(httpServer: Server, app: Express) {
 
     } catch (err) {
       console.error('Chat error:', err);
-      if (!res.headersSent) {
-        res.status(500).json({ error: 'Failed to get DM response' });
-      }
+      if (!res.headersSent) res.status(500).json({ error: 'Failed to get DM response' });
     }
   });
 
-  // Manual state update (for player-initiated changes like spending gold, resting, etc.)
+  // Manual state update
   app.post('/api/campaign/:id/update-state', (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const { stateUpdate } = req.body as { stateUpdate: StateUpdate };
-      const updateData: Record<string, unknown> = {};
-
-      if (stateUpdate.gideonHp !== undefined) updateData.gideonHp = stateUpdate.gideonHp;
-      if (stateUpdate.gideonMaxHp !== undefined) updateData.gideonMaxHp = stateUpdate.gideonMaxHp;
-      if (stateUpdate.gideonGold !== undefined) updateData.gideonGold = stateUpdate.gideonGold;
-      if (stateUpdate.zellaHp !== undefined) updateData.zellaHp = stateUpdate.zellaHp;
-      if (stateUpdate.zellaMaxHp !== undefined) updateData.zellaMaxHp = stateUpdate.zellaMaxHp;
-      if (stateUpdate.zellaGold !== undefined) updateData.zellaGold = stateUpdate.zellaGold;
-      if (stateUpdate.zellaSpellSlots !== undefined) updateData.zellaSpellSlots = stateUpdate.zellaSpellSlots;
-      if (stateUpdate.currentLocation !== undefined) updateData.currentLocation = stateUpdate.currentLocation;
-      if (stateUpdate.cavesCleared !== undefined) updateData.cavesCleared = JSON.stringify(stateUpdate.cavesCleared);
-      if (stateUpdate.partyLevel !== undefined) updateData.partyLevel = stateUpdate.partyLevel;
-      if (stateUpdate.inCombat !== undefined) updateData.inCombat = stateUpdate.inCombat;
-      if (stateUpdate.combatState !== undefined) updateData.combatState = stateUpdate.combatState ? JSON.stringify(stateUpdate.combatState) : null;
-
-      const updated = storage.updateCampaign(id, updateData);
+      const existing = storage.getCampaign(id);
+      if (!existing) return res.status(404).json({ error: 'Not found' });
+      applyStateUpdate(id, stateUpdate, existing as unknown as Record<string, unknown>);
+      const updated = storage.getCampaign(id);
       res.json(updated);
     } catch (err) {
       res.status(500).json({ error: 'Failed to update state' });
@@ -220,7 +297,7 @@ export async function registerRoutes(httpServer: Server, app: Express) {
           },
           body: JSON.stringify({
             input: text.substring(0, 3000),
-            voice_id: voice,   // e.g. 'john'
+            voice_id: voice,
             model: 'simba-english',
             audio_format: 'mp3',
           }),
@@ -230,8 +307,7 @@ export async function registerRoutes(httpServer: Server, app: Express) {
           const b64 = Buffer.from(buf).toString('base64');
           return res.json({ audio: `data:audio/mpeg;base64,${b64}` });
         }
-        const errText = await sfRes.text().catch(() => sfRes.statusText);
-        console.error('Speechify error:', sfRes.status, errText);
+        console.error('Speechify error:', sfRes.status, await sfRes.text().catch(() => ''));
       } catch (err) {
         console.error('Speechify request failed:', err);
       }
@@ -241,17 +317,16 @@ export async function registerRoutes(httpServer: Server, app: Express) {
     // ── ElevenLabs (via Python helper) ───────────────────────────────────────
     try {
       const { execFile } = await import('child_process');
-      const { promisify } = await import('util');
-      const execFileAsync = promisify(execFile);
-      const path = await import('path');
+      const { promisify }  = await import('util');
+      const path           = await import('path');
+      const execFileAsync  = promisify(execFile);
 
       const scriptPath = path.join(process.cwd(), 'server', 'tts_helper.py');
       const { stdout } = await execFileAsync('python3', [scriptPath, text.substring(0, 2000), voice], {
         timeout: 30000,
       });
 
-      const audioBase64 = stdout.trim();
-      res.json({ audio: `data:audio/mpeg;base64,${audioBase64}` });
+      res.json({ audio: `data:audio/mpeg;base64,${stdout.trim()}` });
     } catch (err) {
       console.error('TTS error:', err);
       res.json({ audio: null, fallback: true });

@@ -9,7 +9,7 @@ sqlite.pragma('journal_mode = WAL');
 
 export const db = drizzle(sqlite, { schema });
 
-// Create tables if they don't exist (simple inline migration)
+// Create tables if they don't exist
 sqlite.exec(`
   CREATE TABLE IF NOT EXISTS campaigns (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -38,3 +38,13 @@ sqlite.exec(`
     timestamp INTEGER NOT NULL
   );
 `);
+
+// Add new columns if they don't exist (safe migration)
+const colMigrations = [
+  `ALTER TABLE campaigns ADD COLUMN char1 TEXT DEFAULT NULL`,
+  `ALTER TABLE campaigns ADD COLUMN char2 TEXT DEFAULT NULL`,
+  `ALTER TABLE campaigns ADD COLUMN game_mode TEXT NOT NULL DEFAULT 'heroes'`,
+];
+for (const sql of colMigrations) {
+  try { sqlite.exec(sql); } catch { /* column already exists */ }
+}

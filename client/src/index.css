@@ -4,265 +4,257 @@
 
 /* ============================================================
    THE CHRONICLER — Dark Fantasy Design System
-   Torch-lit stone dungeons, warm amber candlelight, ancient parchment
+   Forge-lit stone, dragon fire, ancient ember & arcane crimson
    ============================================================ */
 
 @layer base {
   :root {
-    /* ── Surfaces (dark stone, default: dark mode) ── */
-    --background: 30 12% 6%;
-    --foreground: 40 28% 82%;
+    /* ── Surfaces (deep stone, near-black) ── */
+    --background: 20 10% 5%;
+    --foreground: 38 28% 84%;
 
-    --card: 34 12% 9%;
-    --card-foreground: 40 28% 82%;
+    --card: 22 10% 8%;
+    --card-foreground: 38 28% 84%;
 
-    --popover: 34 14% 11%;
-    --popover-foreground: 40 28% 82%;
+    --popover: 22 12% 10%;
+    --popover-foreground: 38 28% 84%;
 
-    /* ── Amber gold — torch light ── */
-    --primary: 38 68% 55%;
-    --primary-foreground: 30 12% 8%;
+    /* ── Fire orange — the primary accent ── */
+    --primary: 18 90% 52%;
+    --primary-foreground: 20 10% 5%;
 
     /* ── Dark stone secondary ── */
-    --secondary: 34 14% 14%;
-    --secondary-foreground: 40 20% 75%;
+    --secondary: 22 12% 13%;
+    --secondary-foreground: 38 18% 72%;
 
-    --muted: 34 12% 13%;
-    --muted-foreground: 36 12% 50%;
+    --muted: 22 10% 12%;
+    --muted-foreground: 32 10% 48%;
 
-    /* ── Crimson accent — blood, danger ── */
-    --accent: 0 62% 45%;
-    --accent-foreground: 40 28% 90%;
+    /* ── Crimson — blood, danger ── */
+    --accent: 0 72% 48%;
+    --accent-foreground: 38 28% 90%;
 
-    --destructive: 0 62% 45%;
-    --destructive-foreground: 40 28% 90%;
+    --destructive: 0 72% 48%;
+    --destructive-foreground: 38 28% 90%;
 
-    --border: 34 14% 20%;
-    --input: 34 14% 16%;
-    --ring: 38 68% 55%;
+    --border: 28 12% 18%;
+    --input: 28 12% 15%;
+    --ring: 18 90% 52%;
 
     --radius: 0.5rem;
 
-    /* ── Custom tokens ── */
-    --gold: 38 68% 55%;
-    --gold-hover: 36 62% 45%;
-    --gold-glow: 38 80% 60%;
-    --crimson: 0 62% 45%;
+    /* ── Custom design tokens ── */
+    --fire: 18 90% 52%;
+    --ember: 28 96% 58%;
+    --gold: 42 88% 58%;
+    --gold-hover: 40 78% 48%;
+    --gold-glow: 42 95% 62%;
+    --crimson: 0 72% 48%;
     --forest: 120 38% 32%;
     --arcane: 255 55% 60%;
     --parchment: 40 42% 88%;
-    --stone-border: 34 14% 22%;
-    --stone-deep: 30 10% 5%;
+    --stone-border: 28 12% 20%;
+    --stone-deep: 20 8% 4%;
   }
 
-  /* Light mode (parchment / candlelit scroll) */
+  /* Light mode (ember-lit parchment) */
   .light {
-    --background: 40 35% 90%;
-    --foreground: 34 22% 14%;
-    --card: 40 30% 93%;
-    --card-foreground: 34 22% 14%;
-    --popover: 40 28% 95%;
-    --popover-foreground: 34 22% 14%;
-    --primary: 38 65% 40%;
-    --primary-foreground: 40 35% 95%;
-    --secondary: 40 20% 85%;
-    --secondary-foreground: 34 22% 20%;
-    --muted: 40 18% 87%;
-    --muted-foreground: 36 12% 44%;
-    --accent: 0 58% 42%;
-    --accent-foreground: 40 28% 95%;
-    --destructive: 0 58% 42%;
-    --destructive-foreground: 40 28% 95%;
-    --border: 36 18% 75%;
-    --input: 40 20% 88%;
-    --ring: 38 65% 40%;
-    --stone-border: 36 18% 72%;
-    --stone-deep: 40 35% 86%;
+    --background: 38 32% 90%;
+    --foreground: 22 22% 14%;
+    --card: 38 28% 93%;
+    --card-foreground: 22 22% 14%;
+    --popover: 38 26% 95%;
+    --popover-foreground: 22 22% 14%;
+    --primary: 18 88% 44%;
+    --primary-foreground: 38 32% 96%;
+    --secondary: 38 18% 84%;
+    --secondary-foreground: 22 22% 22%;
+    --muted: 38 16% 87%;
+    --muted-foreground: 32 12% 44%;
+    --accent: 0 65% 42%;
+    --accent-foreground: 38 28% 95%;
+    --destructive: 0 65% 42%;
+    --destructive-foreground: 38 28% 95%;
+    --border: 34 16% 74%;
+    --input: 38 18% 88%;
+    --ring: 18 88% 44%;
+    --stone-border: 34 16% 70%;
+    --stone-deep: 38 32% 86%;
   }
 }
 
 @layer base {
-  * {
-    @apply border-border;
-  }
+  * { @apply border-border; }
   body {
     @apply bg-background text-foreground;
     font-family: 'Lora', 'Georgia', serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
-  
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Cinzel', 'Times New Roman', serif;
     letter-spacing: 0.02em;
   }
-
-  /* Scrollbar styling */
-  ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
-  ::-webkit-scrollbar-track {
-    background: hsl(var(--muted));
-  }
-  ::-webkit-scrollbar-thumb {
-    background: hsl(var(--border));
-    border-radius: 3px;
-  }
-  ::-webkit-scrollbar-thumb:hover {
-    background: hsl(var(--primary) / 0.6);
-  }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: hsl(var(--muted)); }
+  ::-webkit-scrollbar-thumb { background: hsl(var(--border)); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: hsl(var(--fire) / 0.5); }
 }
 
-/* ── Custom utility classes ── */
+/* ── Custom utilities ── */
 @layer components {
   .font-display {
     font-family: 'Cinzel', 'Times New Roman', serif;
     letter-spacing: 0.04em;
   }
+  .font-body { font-family: 'Lora', 'Georgia', serif; }
 
-  .font-body {
-    font-family: 'Lora', 'Georgia', serif;
+  .narration { @apply leading-relaxed; font-family: 'Lora', 'Georgia', serif; }
+  .narration em { @apply not-italic; color: hsl(var(--ember)); font-style: italic; }
+
+  /* Fire glow — the new primary glow colour */
+  .glow-fire {
+    box-shadow: 0 0 12px hsl(var(--fire) / 0.35), 0 0 32px hsl(var(--fire) / 0.12);
+  }
+  .glow-fire:hover {
+    box-shadow: 0 0 22px hsl(var(--fire) / 0.5), 0 0 56px hsl(var(--fire) / 0.2);
   }
 
-  /* Parchment text effect for DM narration */
-  .narration {
-    @apply leading-relaxed;
-    font-family: 'Lora', 'Georgia', serif;
-  }
-
-  .narration em {
-    @apply text-amber-300 not-italic;
-    font-style: italic;
-  }
-
-  /* Gold glow effect for interactive elements */
+  /* Gold glow for decorative elements */
   .glow-gold {
-    box-shadow: 0 0 12px hsl(var(--gold) / 0.25), 0 0 32px hsl(var(--gold) / 0.1);
+    box-shadow: 0 0 10px hsl(var(--gold) / 0.3), 0 0 28px hsl(var(--gold) / 0.1);
   }
 
-  .glow-gold:hover {
-    box-shadow: 0 0 20px hsl(var(--gold) / 0.35), 0 0 48px hsl(var(--gold) / 0.15);
-  }
-
-  /* Stone panel */
   .stone-panel {
     background: hsl(var(--card));
     border: 1px solid hsl(var(--stone-border));
   }
 
-  /* HP bar animations */
-  .hp-bar-fill {
-    transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-  }
+  .hp-bar-fill { transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1); }
 
-  /* Spell slot pips */
-  .spell-pip {
-    @apply w-3 h-3 rounded-full border transition-all duration-300;
-  }
-
-  .spell-pip.used {
-    @apply bg-transparent border-muted-foreground opacity-40;
-  }
-
+  .spell-pip { @apply w-3 h-3 rounded-full border transition-all duration-300; }
+  .spell-pip.used { @apply bg-transparent border-muted-foreground opacity-40; }
   .spell-pip.available {
     @apply bg-purple-400 border-purple-300;
     box-shadow: 0 0 6px rgb(167 139 250 / 0.4);
   }
 
-  /* DM text streaming animation */
   @keyframes fadeInUp {
     from { opacity: 0; transform: translateY(8px); }
-    to { opacity: 1; transform: translateY(0); }
+    to   { opacity: 1; transform: translateY(0); }
   }
+  .message-enter { animation: fadeInUp 0.3s ease forwards; }
 
-  .message-enter {
-    animation: fadeInUp 0.3s ease forwards;
-  }
-
-  /* Torch flicker */
+  /* Torch / fire flicker */
   @keyframes flicker {
     0%, 100% { opacity: 1; }
-    50% { opacity: 0.85; }
-    75% { opacity: 0.95; }
+    30%       { opacity: 0.88; }
+    60%       { opacity: 0.96; }
+    80%       { opacity: 0.84; }
   }
-
-  .torch-flicker {
-    animation: flicker 3s ease-in-out infinite;
-  }
+  .torch-flicker { animation: flicker 2.8s ease-in-out infinite; }
 
   /* Pulse for TTS active state */
-  @keyframes pulse-gold {
-    0%, 100% { box-shadow: 0 0 8px hsl(var(--gold) / 0.3); }
-    50% { box-shadow: 0 0 20px hsl(var(--gold) / 0.6); }
+  @keyframes pulse-fire {
+    0%, 100% { box-shadow: 0 0 8px hsl(var(--fire) / 0.4); }
+    50%       { box-shadow: 0 0 22px hsl(var(--fire) / 0.7); }
   }
-
-  .tts-active {
-    animation: pulse-gold 1.5s ease-in-out infinite;
-  }
+  .tts-active { animation: pulse-fire 1.4s ease-in-out infinite; }
 
   /* Cave progress dots */
   .cave-dot {
     @apply w-5 h-5 rounded-full border-2 flex items-center justify-center text-xs font-display transition-all duration-300;
   }
-
   .cave-dot.cleared {
-    @apply bg-yellow-600 border-yellow-500 text-yellow-900;
-    box-shadow: 0 0 8px hsl(var(--gold) / 0.4);
+    @apply border-yellow-500 text-yellow-900;
+    background: hsl(var(--gold));
+    box-shadow: 0 0 8px hsl(var(--gold) / 0.5);
   }
-
   .cave-dot.active {
-    @apply bg-amber-500 border-amber-400 text-amber-900;
-    animation: pulse-gold 2s ease-in-out infinite;
+    @apply border-orange-400 text-orange-900;
+    background: hsl(var(--fire));
+    animation: pulse-fire 2s ease-in-out infinite;
   }
-
-  .cave-dot.locked {
-    @apply bg-stone-800 border-stone-700 text-stone-500;
-  }
-
-  .cave-dot.available {
-    @apply bg-stone-700 border-stone-600 text-stone-400;
-  }
+  .cave-dot.locked { @apply bg-stone-800 border-stone-700 text-stone-500; }
+  .cave-dot.available { @apply bg-stone-700 border-stone-600 text-stone-400; }
 
   /* Combat tracker */
   .combatant-row {
     @apply flex items-center gap-2 p-2 rounded border transition-all duration-200;
   }
-
   .combatant-row.active-turn {
-    @apply border-amber-500 bg-amber-950;
-    box-shadow: 0 0 12px hsl(38 68% 55% / 0.2);
+    @apply border-orange-500 bg-orange-950;
+    box-shadow: 0 0 12px hsl(var(--fire) / 0.2);
+  }
+  .combatant-row.player  { @apply border-stone-700; }
+  .combatant-row.enemy   { @apply border-stone-700 text-red-300; }
+
+  /* ── Landing Page ── */
+  .landing-bg {
+    background:
+      radial-gradient(ellipse 80% 50% at 50% 100%, hsl(18 90% 30% / 0.35) 0%, transparent 70%),
+      radial-gradient(ellipse 60% 40% at 20% 80%,  hsl(0 70% 25% / 0.2) 0%,  transparent 60%),
+      radial-gradient(ellipse 60% 40% at 80% 80%,  hsl(35 80% 25% / 0.2) 0%,  transparent 60%),
+      hsl(20 10% 4%);
   }
 
-  .combatant-row.player {
-    @apply border-stone-700;
+  /* Ember particle base */
+  .ember-particle {
+    position: absolute;
+    border-radius: 50%;
+    background: hsl(var(--fire));
+    pointer-events: none;
+    animation: emberFloat var(--dur, 6s) ease-in var(--delay, 0s) infinite;
+    opacity: 0;
   }
 
-  .combatant-row.enemy {
-    @apply border-stone-700 text-red-300;
+  @keyframes emberFloat {
+    0%   { transform: translateY(0) translateX(0) scale(1); opacity: 0; }
+    10%  { opacity: 0.8; }
+    50%  { transform: translateY(-40vh) translateX(var(--drift, 20px)) scale(0.6); opacity: 0.5; }
+    100% { transform: translateY(-90vh) translateX(var(--drift2, -10px)) scale(0.2); opacity: 0; }
+  }
+
+  /* Character creation card */
+  .choice-card {
+    @apply relative cursor-pointer rounded-lg border-2 border-stone-700 bg-stone-900/60 p-4
+           transition-all duration-200 hover:border-orange-500 hover:bg-orange-950/30;
+  }
+  .choice-card.selected {
+    @apply border-orange-500 bg-orange-950/50;
+    box-shadow: 0 0 18px hsl(var(--fire) / 0.3), inset 0 0 8px hsl(var(--fire) / 0.1);
+  }
+
+  /* Stat box for ability scores */
+  .stat-box {
+    @apply flex flex-col items-center justify-center rounded-md border-2 border-stone-700 bg-stone-900
+           p-3 cursor-pointer transition-all duration-150 hover:border-orange-500;
+    min-width: 72px;
+  }
+  .stat-box.filled { @apply border-orange-600; }
+  .stat-box.selected-target {
+    @apply border-amber-400;
+    box-shadow: 0 0 14px hsl(var(--gold) / 0.4);
+  }
+
+  /* Score chip (draggable score) */
+  .score-chip {
+    @apply inline-flex items-center justify-center rounded-full border-2 border-stone-600 bg-stone-800
+           font-display text-base font-bold cursor-pointer transition-all duration-150 hover:border-orange-500 hover:bg-orange-950/30;
+    width: 44px; height: 44px;
+  }
+  .score-chip.used { @apply opacity-40 cursor-default border-stone-700 hover:border-stone-700 hover:bg-stone-800; }
+  .score-chip.picked {
+    @apply border-amber-400 bg-amber-950/40;
+    box-shadow: 0 0 10px hsl(var(--gold) / 0.4);
   }
 }
 
-/* ── Markdown-style rendering in narration ── */
-.dm-content p {
-  margin-bottom: 0.75rem;
-  line-height: 1.75;
-}
-
-.dm-content p:last-child {
-  margin-bottom: 0;
-}
-
-.dm-content em {
-  color: hsl(var(--gold));
-  font-style: italic;
-}
-
-.dm-content strong {
-  color: hsl(var(--foreground));
-  font-weight: 600;
-}
-
+/* ── Markdown rendering ── */
+.dm-content p { margin-bottom: 0.75rem; line-height: 1.75; }
+.dm-content p:last-child { margin-bottom: 0; }
+.dm-content em { color: hsl(var(--ember)); font-style: italic; }
+.dm-content strong { color: hsl(var(--foreground)); font-weight: 600; }
 .dm-content .status-line {
   font-family: 'Cinzel', serif;
   font-size: 0.75rem;
@@ -272,14 +264,20 @@
   padding-top: 0.5rem;
 }
 
-/* ── Logo torch glow ── */
-.logo-glow {
-  filter: drop-shadow(0 0 8px hsl(var(--gold) / 0.5));
+/* Logo glow — fire instead of gold */
+.logo-glow { filter: drop-shadow(0 0 10px hsl(var(--fire) / 0.6)); }
+
+/* Ambient background texture */
+.stone-texture {
+  background-image:
+    radial-gradient(circle at 15% 15%, hsl(18 90% 52% / 0.04) 0%, transparent 45%),
+    radial-gradient(circle at 85% 85%, hsl(0 72% 48% / 0.04) 0%, transparent 45%);
 }
 
-/* Ambient background pattern */
-.stone-texture {
-  background-image: 
-    radial-gradient(circle at 20% 20%, hsl(38 68% 55% / 0.03) 0%, transparent 50%),
-    radial-gradient(circle at 80% 80%, hsl(255 55% 60% / 0.03) 0%, transparent 50%);
+/* Step progress bar */
+.step-indicator {
+  @apply w-3 h-3 rounded-full border-2 transition-all duration-300;
 }
+.step-indicator.done    { @apply border-orange-500 bg-orange-500; }
+.step-indicator.active  { @apply border-amber-400 bg-amber-400; box-shadow: 0 0 8px hsl(var(--gold)/0.5); }
+.step-indicator.pending { @apply border-stone-600 bg-transparent; }
