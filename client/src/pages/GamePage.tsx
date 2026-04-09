@@ -1,15 +1,16 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
+import { apiRequest, API_BASE } from '@/lib/queryClient';
 import { Link, useLocation } from 'wouter';
 import type { Campaign, Message } from '@shared/schema';
-import { speakText, stopSpeech, isSpeaking } from '@/lib/tts';
+import { speakText, stopSpeech, isSpeaking, touchAudioContext, hasPendingAudio } from '@/lib/tts';
 import { Prefs } from '@/lib/preferences';
 import { useTheme } from '@/components/ThemeProvider';
 import CharacterPanel from '@/components/CharacterPanel';
 import CaveProgress from '@/components/CaveProgress';
 import CombatTracker from '@/components/CombatTracker';
 import DiceHelper from '@/components/DiceHelper';
+import DiceGuide from '@/components/DiceGuide';
 import ChroniclerLogo from '@/components/ChroniclerLogo';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -17,8 +18,52 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import {
-  Send, Volume2, VolumeX, Settings, RotateCcw, Sword, BookOpen, Moon, Sun, Mic, MicOff, Scroll
+  Send, Volume2, VolumeX, Settings, RotateCcw, Sword, BookOpen, Moon, Sun, Mic, MicOff, Scroll, HelpCircle
 } from 'lucide-react';
+
+// ── Parallax hook ────────────────────────────────────────────────────────────
+// Drives two background layers at different depths via direct DOM style writes.
+// No React state = zero re-renders on mouse move.
+function useParallaxBackground(
+  stoneRef: React.RefObject<HTMLDivElement>,
+  glowRef:  React.RefObject<HTMLDivElement>
+) {
+  useEffect(() => {
+    let raf = 0;
+    // Target positions (lerp towards these)
+    let tx = 0, ty = 0;
+    // Current interpolated positions
+    let cx = 0, cy = 0;
+
+    const onMove = (e: MouseEvent) => {
+      tx = (e.clientX / window.innerWidth  - 0.5);
+      ty = (e.clientY / window.innerHeight - 0.5);
+    };
+
+    const animate = () => {
+      // Lerp for buttery smoothness
+      cx += (tx - cx) * 0.05;
+      cy += (ty - cy) * 0.05;
+
+      if (stoneRef.current) {
+        stoneRef.current.style.transform =
+          `translate(${cx * 38}px, ${cy * 26}px)`;
+      }
+      if (glowRef.current) {
+        glowRef.current.style.transform =
+          `translate(${cx * 62}px, ${cy * 44}px)`;
+      }
+      raf = requestAnimationFrame(animate);
+    };
+
+    window.addEventListener('mousemove', onMove, { passive: true });
+    raf = requestAnimationFrame(animate);
+    return () => {
+      window.removeEventListener('mousemove', onMove);
+      cancelAnimationFrame(raf);
+    };
+  }, [stoneRef, glowRef]);
+}
 
 // ── Demo Mode Scripts ────────────────────────────────────────────────────────
 const DEMO_STEPS = [
@@ -192,8 +237,20 @@ export default function GamePage() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [ttsActive, setTtsActive] = useState(false);
   const [ttsEnabled, setTtsEnabled] = useState(true);
-  const [rightPanel, setRightPanel] = useState<'combat' | 'dice' | 'caves'>('caves');
+  const [rightPanel, setRightPanel] = useState<'combat' | 'dice' | 'caves' | 'guide'>('caves');
   const abortRef = useRef<AbortController | null>(null);
+
+  // Parallax background refs
+  const parallaxStoneRef = useRef<HTMLDivElement>(null);
+  const parallaxGlowRef  = useRef<HTMLDivElement>(null);
+  useParallaxBackground(parallaxStoneRef, parallaxGlowRef);
+
+  // Pending audio indicator — polls hasPendingAudio() so user can tap to unlock
+  const [pendingAudio, setPendingAudio] = useState(false);
+  useEffect(() => {
+    const id = setInterval(() => setPendingAudio(hasPendingAudio()), 400);
+    return () => clearInterval(id);
+  }, []);
 
   // Demo mode
   const [isDemoMode, setIsDemoMode] = useState(false);
@@ -232,12 +289,11 @@ export default function GamePage() {
     const p = Prefs.voice;
     setTtsActive(true);
     await speakText(text, {
-      voice: p.provider as any,
-      voiceName: p.elevenLabsVoice,
-      speechifyKey: p.speechifyKey,
-      speechifyVoiceId: p.speechifyVoiceId,
+      voice: 'elevenlabs',
+      voiceName: p.voiceName,
+      elevenLabsApiKey: p.elevenLabsApiKey,
       rate: 0.9,
-      pitch: 0.85,
+      pitch: 0.8,
       onEnd: () => setTtsActive(false),
       onError: () => setTtsActive(false),
     });
@@ -276,12 +332,11 @@ export default function GamePage() {
       const p = Prefs.voice;
       setTtsActive(true);
       speakText(exchange.dm, {
-        voice: p.provider as any,
-        voiceName: p.elevenLabsVoice,
-        speechifyKey: p.speechifyKey,
-        speechifyVoiceId: p.speechifyVoiceId,
+        voice: 'elevenlabs',
+        voiceName: p.voiceName,
+        elevenLabsApiKey: p.elevenLabsApiKey,
         rate: 0.9,
-        pitch: 0.85,
+        pitch: 0.8,
         onEnd: () => setTtsActive(false),
         onError: () => setTtsActive(false),
       });
@@ -331,7 +386,7 @@ export default function GamePage() {
     abortRef.current = new AbortController();
 
     try {
-      const response = await fetch('/api/chat', {
+      const response = await fetch(`${API_BASE}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: playerMessage, campaignId: campaign.id }),
@@ -386,6 +441,7 @@ export default function GamePage() {
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
+      touchAudioContext(); // unlock audio on keypress
       sendMessage();
     }
   };
@@ -442,16 +498,76 @@ export default function GamePage() {
   const inCombat = campaign?.inCombat ?? false;
 
   return (
-    <div className="min-h-screen bg-background flex flex-col stone-texture">
+    <div className="min-h-screen bg-background flex flex-col stone-texture relative overflow-hidden">
+
+      {/* ── Parallax layer 1: stone noise texture ── */}
+      <div
+        ref={parallaxStoneRef}
+        aria-hidden="true"
+        className="parallax-stone-layer"
+      >
+        <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+          <filter id="pg-stone">
+            <feTurbulence type="fractalNoise" baseFrequency="0.68 0.58" numOctaves="4" stitchTiles="stitch" />
+            <feColorMatrix type="saturate" values="0" />
+          </filter>
+          <rect width="100%" height="100%" filter="url(#pg-stone)" />
+        </svg>
+      </div>
+
+      {/* ── Parallax layer 2: ambient glow gradients ── */}
+      <div
+        ref={parallaxGlowRef}
+        aria-hidden="true"
+        className="parallax-glow-layer"
+      />
+
+      {/* ── Floating ember atmosphere ── */}
+      <div className="pointer-events-none absolute inset-0" aria-hidden="true" style={{ zIndex: 1 }}>
+        {[
+          // Regular embers — orange/red
+          { l:'4%',  w:5, dur:'7s',   delay:'0s',    drift:'22px',  drift2:'-16px', spark:false },
+          { l:'11%', w:3, dur:'9s',   delay:'1.4s',  drift:'-18px', drift2:'10px',  spark:false },
+          { l:'19%', w:6, dur:'6s',   delay:'2.8s',  drift:'28px',  drift2:'-22px', spark:false },
+          { l:'27%', w:4, dur:'11s',  delay:'0.6s',  drift:'-14px', drift2:'18px',  spark:false },
+          { l:'34%', w:5, dur:'8s',   delay:'3.5s',  drift:'20px',  drift2:'-10px', spark:false },
+          { l:'42%', w:3, dur:'7.5s', delay:'1.9s',  drift:'-24px', drift2:'14px',  spark:false },
+          { l:'50%', w:6, dur:'10s',  delay:'0.3s',  drift:'16px',  drift2:'-20px', spark:false },
+          { l:'58%', w:4, dur:'6.5s', delay:'2.2s',  drift:'-10px', drift2:'24px',  spark:false },
+          { l:'67%', w:5, dur:'9.5s', delay:'4.1s',  drift:'30px',  drift2:'-12px', spark:false },
+          { l:'75%', w:3, dur:'8.5s', delay:'5.0s',  drift:'-20px', drift2:'16px',  spark:false },
+          { l:'82%', w:6, dur:'12s',  delay:'1.0s',  drift:'14px',  drift2:'-28px', spark:false },
+          { l:'89%', w:4, dur:'7s',   delay:'3.0s',  drift:'-22px', drift2:'10px',  spark:false },
+          { l:'95%', w:5, dur:'9s',   delay:'0.8s',  drift:'18px',  drift2:'-14px', spark:false },
+          { l:'14%', w:3, dur:'8s',   delay:'6.0s',  drift:'-16px', drift2:'20px',  spark:false },
+          { l:'38%', w:4, dur:'11s',  delay:'2.5s',  drift:'24px',  drift2:'-18px', spark:false },
+          // Hot sparks — bright yellow-white, faster
+          { l:'7%',  w:3, dur:'4.5s', delay:'1.2s',  drift:'12px',  drift2:'-8px',  spark:true  },
+          { l:'31%', w:2, dur:'3.8s', delay:'0.5s',  drift:'-10px', drift2:'12px',  spark:true  },
+          { l:'55%', w:3, dur:'5.0s', delay:'2.0s',  drift:'16px',  drift2:'-10px', spark:true  },
+          { l:'72%', w:2, dur:'4.2s', delay:'3.8s',  drift:'-14px', drift2:'8px',   spark:true  },
+          { l:'88%', w:3, dur:'4.8s', delay:'1.6s',  drift:'10px',  drift2:'-16px', spark:true  },
+        ].map((p, i) => (
+          <span
+            key={i}
+            className={`ember-particle${p.spark ? ' spark' : ''}`}
+            style={{
+              width: p.w, height: p.w, left: p.l,
+              bottom: p.spark ? `${(i * 4) % 6}%` : `${(i * 2) % 5}%`,
+              '--dur': p.dur, '--delay': p.delay, '--drift': p.drift, '--drift2': p.drift2,
+            } as React.CSSProperties}
+          />
+        ))}
+      </div>
       {/* ── Top Header ── */}
-      <header className="border-b border-stone-800 bg-card sticky top-0 z-50">
+      <header className="border-b border-stone-800 bg-card sticky top-0" style={{ zIndex: 50 }}>
         <div className="flex items-center justify-between px-4 h-14">
           {/* Logo + Title */}
           <div className="flex items-center gap-3">
             <ChroniclerLogo className="w-8 h-8 logo-glow" />
             <div>
               <h1 className="font-display text-amber-400 text-base leading-none tracking-widest">THE CHRONICLER</h1>
-              <p className="text-muted-foreground text-xs">Heroes of the Borderlands</p>
+              <p className="font-display text-muted-foreground/60 text-xs tracking-[0.2em]">HEROES OF THE BORDERLANDS</p>
             </div>
           </div>
 
@@ -462,6 +578,7 @@ export default function GamePage() {
               variant="ghost"
               size="icon"
               onClick={() => {
+                touchAudioContext(); // unlock + replay pending
                 if (ttsActive) { stopSpeech(); setTtsActive(false); }
                 else setTtsEnabled(e => !e);
               }}
@@ -472,16 +589,16 @@ export default function GamePage() {
               {ttsEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
             </Button>
 
-            {/* Panel toggle: combat / dice / caves */}
+            {/* Panel toggle: combat / dice / caves / guide */}
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => setRightPanel(p => p === 'combat' ? 'caves' : p === 'caves' ? 'dice' : 'combat')}
+              onClick={() => setRightPanel(p => p === 'combat' ? 'caves' : p === 'caves' ? 'dice' : p === 'dice' ? 'guide' : 'combat')}
               className="h-8 w-8 text-muted-foreground hover:text-amber-400"
               title="Toggle right panel"
               data-testid="button-panel-toggle"
             >
-              {rightPanel === 'combat' ? <Sword className="h-4 w-4" /> : rightPanel === 'caves' ? <Scroll className="h-4 w-4" /> : <BookOpen className="h-4 w-4" />}
+              {rightPanel === 'combat' ? <Sword className="h-4 w-4" /> : rightPanel === 'caves' ? <Scroll className="h-4 w-4" /> : rightPanel === 'dice' ? <BookOpen className="h-4 w-4" /> : <HelpCircle className="h-4 w-4 text-amber-400" />}
             </Button>
 
             {/* Theme toggle */}
@@ -509,7 +626,7 @@ export default function GamePage() {
       </header>
 
       {/* ── Main Layout ── */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden" style={{ position: 'relative', zIndex: 2 }}>
         {/* Left Sidebar */}
         <aside className="w-48 border-r border-stone-800 bg-card/40 hidden lg:flex flex-col">
           <div className="p-3 space-y-4 flex-1 overflow-y-auto">
@@ -590,11 +707,11 @@ export default function GamePage() {
                 <div className="text-center py-12 space-y-4">
                   <ChroniclerLogo className="w-20 h-20 mx-auto torch-flicker" style={{ filter: 'drop-shadow(0 0 18px hsl(18 90% 52% / 0.7))' }} />
                   <div className="space-y-2">
-                    <h2 className="font-display text-xl tracking-wider" style={{ color: 'hsl(18 80% 58%)' }}>The Adventure Awaits</h2>
-                    <p className="text-sm max-w-md mx-auto leading-relaxed" style={{ color: 'hsl(38 16% 52%)' }}>
+                    <h2 className="font-display text-xl tracking-wider" style={{ color: 'hsl(18 80% 58%)' }}>The Chronicle Awaits</h2>
+                    <p className="font-serif text-sm max-w-md mx-auto leading-relaxed" style={{ color: 'hsl(38 16% 52%)' }}>
                       {campaign?.gameMode === 'custom' && campaign?.char1
-                        ? `Your party is assembled and ready. Speak your first action to begin.`
-                        : 'Place your party tokens at Cave A. When ready — speak your first action, or ask The Chronicler to begin.'}
+                        ? `Your fellowship is assembled. The darkness stirs. Speak your will into the chronicle.`
+                        : 'Set your tokens at the mouth of Cave A. When courage calls — declare your first action, or bid The Chronicler to begin.'}
                     </p>
                   </div>
                   {/* Demo button */}
@@ -611,21 +728,21 @@ export default function GamePage() {
                       data-testid="button-start-demo"
                     >
                       <Scroll className="h-4 w-4" />
-                      Watch the Demo
+                      Witness the Chronicle
                     </button>
-                    <p className="text-xs mt-2" style={{ color: 'hsl(38 12% 40%)' }}>See a scripted adventure with full narration — no setup needed</p>
+                    <p className="font-display text-xs tracking-wide mt-2" style={{ color: 'hsl(38 12% 40%)' }}>A scripted tale — full narration, no key required</p>
                   </div>
                   <div className="flex flex-wrap gap-2 justify-center pt-1">
                     {[
                       'Begin the adventure',
-                      'We search for traps at the entrance',
-                      'Zella casts Light on her spellbook',
-                      'We try to listen at the cave mouth',
+                      'We search the entrance for traps',
+                      'Zella speaks the words of Light',
+                      'We listen at the cave mouth',
                     ].map(suggestion => (
                       <button
                         key={suggestion}
                         onClick={() => { setInput(suggestion); inputRef.current?.focus(); }}
-                        className="text-xs px-3 py-1.5 rounded-full border transition-colors"
+                        className="font-display text-xs tracking-wide px-3 py-1.5 rounded-full border transition-colors"
                         style={{ borderColor: 'hsl(28 12% 22%)', color: 'hsl(38 14% 46%)' }}
                         data-testid={`button-suggestion-${suggestion.substring(0, 10)}`}
                       >
@@ -660,10 +777,10 @@ export default function GamePage() {
                     msg.role === 'player' ? (
                       <div key={idx} className="flex justify-end message-enter">
                         <div className="max-w-xs lg:max-w-md">
-                          <div className="bg-stone-700 rounded-lg px-4 py-2.5 text-sm text-foreground">
+                          <div className="bg-stone-800/70 rounded-lg px-4 py-2.5 text-sm font-display tracking-wide text-foreground/80">
                             {msg.content}
                           </div>
-                          <p className="text-xs text-muted-foreground text-right mt-1">You</p>
+                          <p className="font-display text-xs tracking-widest text-muted-foreground/40 text-right mt-1">— THE ADVENTURER</p>
                         </div>
                       </div>
                     ) : (
@@ -671,8 +788,8 @@ export default function GamePage() {
                         <div className="w-7 h-7 rounded-full bg-amber-900/50 border border-amber-700/50 flex items-center justify-center flex-shrink-0 mt-0.5">
                           <Scroll className="h-3.5 w-3.5 text-amber-500" />
                         </div>
-                        <div className="flex-1 stone-panel rounded-lg p-4 text-sm dm-content">
-                          <div className="narration text-foreground/90">
+                        <div className="flex-1 stone-panel rounded-lg p-4 dm-content chronicle-prose">
+                          <div className="narration">
                             {renderContent(msg.content)}
                           </div>
                         </div>
@@ -726,8 +843,8 @@ export default function GamePage() {
                     <div className="w-7 h-7 rounded-full bg-amber-900/50 border border-amber-700/50 flex items-center justify-center flex-shrink-0 mt-0.5">
                       <Scroll className="h-3.5 w-3.5 text-amber-500" />
                     </div>
-                    <div className="flex-1 stone-panel rounded-lg p-4 text-sm dm-content">
-                      <div className="narration text-foreground/90">
+                    <div className="flex-1 stone-panel rounded-lg p-4 dm-content chronicle-prose">
+                      <div className="narration">
                         {renderContent(streamingText)}
                       </div>
                       <span className="inline-block w-0.5 h-4 bg-amber-500 animate-pulse ml-0.5" />
@@ -750,7 +867,7 @@ export default function GamePage() {
                     value={input}
                     onChange={e => setInput(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    placeholder="What do you do? (Enter to send, Shift+Enter for new line)"
+                    placeholder="Speak your action into the chronicle... (Enter to send)"
                     className="resize-none bg-input border-stone-700 focus:border-amber-600 text-sm min-h-[44px] max-h-32 pr-2 font-body placeholder:text-muted-foreground/50"
                     rows={1}
                     disabled={isStreaming}
@@ -758,7 +875,7 @@ export default function GamePage() {
                   />
                 </div>
                 <Button
-                  onClick={sendMessage}
+                  onClick={() => { touchAudioContext(); sendMessage(); }}
                   disabled={!input.trim() || isStreaming}
                   className="bg-amber-600 hover:bg-amber-500 text-stone-900 h-11 w-11 flex-shrink-0 font-display glow-gold"
                   size="icon"
@@ -767,9 +884,23 @@ export default function GamePage() {
                   <Send className="h-4 w-4" />
                 </Button>
               </div>
-              <p className="text-xs text-muted-foreground/50 mt-1.5 text-center">
-                The Chronicler is your Game Master — roll physical dice and report the result
-              </p>
+              {/* Pending audio nudge */}
+              {pendingAudio && (
+                <button
+                  onClick={() => { touchAudioContext(); setPendingAudio(false); }}
+                  className="w-full mt-1.5 flex items-center justify-center gap-1.5 text-xs py-1 rounded transition-all animate-pulse"
+                  style={{ color: 'hsl(18 90% 62%)', background: 'hsl(18 90% 52% / 0.08)' }}
+                  data-testid="button-pending-audio"
+                >
+                  <Volume2 className="h-3 w-3" />
+                  Tap to hear narration
+                </button>
+              )}
+              {!pendingAudio && (
+                <p className="font-display text-xs tracking-wide text-muted-foreground/40 mt-1.5 text-center">
+                  Roll thy dice. Speak thy fate. Let the chronicle be written.
+                </p>
+              )}
             </div>
           </div>
         </main>
@@ -778,35 +909,49 @@ export default function GamePage() {
         <aside className="w-56 border-l border-stone-800 bg-card/40 hidden xl:flex flex-col">
           {/* Panel tabs */}
           <div className="flex border-b border-stone-800">
-            {(['caves', 'combat', 'dice'] as const).map(panel => (
+            {([
+              { id: 'caves',  label: 'Caves'  },
+              { id: 'combat', label: 'Combat' },
+              { id: 'dice',   label: 'Dice'   },
+              { id: 'guide',  label: '? Help' },
+            ] as const).map(({ id, label }) => (
               <button
-                key={panel}
-                onClick={() => setRightPanel(panel)}
-                className={`flex-1 py-2 text-xs font-display tracking-wide transition-colors capitalize ${
-                  rightPanel === panel
-                    ? 'text-amber-400 border-b-2 border-amber-500'
+                key={id}
+                onClick={() => setRightPanel(id)}
+                className={`flex-1 py-2 text-xs font-display tracking-wide transition-colors ${
+                  rightPanel === id
+                    ? id === 'guide'
+                      ? 'text-amber-400 border-b-2 border-amber-500'
+                      : 'text-amber-400 border-b-2 border-amber-500'
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
-                data-testid={`button-panel-${panel}`}
+                data-testid={`button-panel-${id}`}
               >
-                {panel}
+                {label}
               </button>
             ))}
           </div>
 
-          <div className="flex-1 overflow-y-auto p-3">
+          <div className="flex-1 overflow-hidden">
             {rightPanel === 'caves' && campaign && (
-              <CaveProgress
-                cavesCleared={JSON.parse(campaign.cavesCleared ?? '[]')}
-                partyLevel={campaign.partyLevel ?? 1}
-              />
+              <div className="h-full overflow-y-auto p-3">
+                <CaveProgress
+                  cavesCleared={JSON.parse(campaign.cavesCleared ?? '[]')}
+                  partyLevel={campaign.partyLevel ?? 1}
+                />
+              </div>
             )}
             {rightPanel === 'combat' && campaign && (
-              <CombatTracker campaign={campaign} />
+              <div className="h-full overflow-y-auto p-3">
+                <CombatTracker campaign={campaign} />
+              </div>
             )}
             {rightPanel === 'dice' && (
-              <DiceHelper onRollResult={(result) => setInput(prev => prev + (prev ? '\n' : '') + result)} />
+              <div className="h-full overflow-y-auto p-3">
+                <DiceHelper onRollResult={(result) => setInput(prev => prev + (prev ? '\n' : '') + result)} />
+              </div>
             )}
+            {rightPanel === 'guide' && <DiceGuide />}
           </div>
         </aside>
       </div>
@@ -830,13 +975,13 @@ function MessageBubble({
     return (
       <div className="flex items-start gap-3 justify-end message-enter">
         <div className="flex-1 max-w-sm">
-          <div className="bg-stone-800/60 rounded-lg px-4 py-3 text-sm text-foreground/80 ml-8">
-            <p className="leading-relaxed">{message.content}</p>
+          <div className="rounded-lg px-4 py-3 ml-8" style={{ background: 'hsl(20 14% 12% / 0.8)', border: '1px solid hsl(28 12% 20%)' }}>
+            <p className="font-display tracking-wide text-sm" style={{ color: 'hsl(38 22% 72%)' }}>{message.content}</p>
           </div>
-          <p className="text-xs text-muted-foreground/40 text-right mt-1 pr-1">You</p>
+          <p className="font-display text-xs tracking-widest mt-1 pr-1 text-right" style={{ color: 'hsl(38 12% 36%)' }}>— THE ADVENTURER</p>
         </div>
-        <div className="w-7 h-7 rounded-full bg-stone-700 border border-stone-600 flex items-center justify-center flex-shrink-0 mt-0.5">
-          <span className="text-xs">⚔</span>
+        <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: 'hsl(20 14% 14%)', border: '1px solid hsl(28 12% 22%)' }}>
+          <span className="text-xs" style={{ color: 'hsl(38 22% 50%)' }}>⚔</span>
         </div>
       </div>
     );
@@ -845,22 +990,22 @@ function MessageBubble({
   return (
     <div className="message-enter group">
       <div className="flex items-start gap-3">
-        <div className="w-7 h-7 rounded-full bg-amber-900/50 border border-amber-700/50 flex items-center justify-center flex-shrink-0 mt-0.5">
+        <div className="w-7 h-7 rounded-full bg-amber-900/50 border border-amber-700/50 flex items-center justify-center flex-shrink-0 mt-1">
           <Scroll className="h-3.5 w-3.5 text-amber-500" />
         </div>
-        <div className="flex-1 stone-panel rounded-lg p-4 text-sm dm-content">
-          <div className="narration text-foreground/90">
+        <div className="flex-1 stone-panel rounded-lg p-4 dm-content chronicle-prose">
+          <div className="narration">
             {renderContent(message.content)}
           </div>
 
           {/* Speak button (appears on hover) */}
           <button
             onClick={() => onSpeak(message.content)}
-            className="mt-2 opacity-0 group-hover:opacity-100 transition-opacity text-xs text-muted-foreground hover:text-amber-400 flex items-center gap-1"
+            className="mt-2 opacity-0 group-hover:opacity-100 transition-opacity font-display text-xs tracking-wide text-muted-foreground hover:text-amber-400 flex items-center gap-1"
             data-testid={`button-speak-${message.id}`}
           >
             <Volume2 className="h-3 w-3" />
-            {ttsActive ? 'Stop' : 'Speak this'}
+            {ttsActive ? 'Silence the Voice' : 'Speak this aloud'}
           </button>
         </div>
       </div>

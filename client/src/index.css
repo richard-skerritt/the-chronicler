@@ -198,6 +198,41 @@
       hsl(20 10% 4%);
   }
 
+  /* ── Parallax background layers ───────────────────────────── */
+
+  /* Layer 1 — stone noise: visible dungeon texture depth */
+  .parallax-stone-layer {
+    position: absolute;
+    inset: -10%;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0.14;
+    will-change: transform;
+  }
+
+  /* Layer 2 — glow gradients: dramatic fire rim lighting with breathing pulse */
+  .parallax-glow-layer {
+    position: absolute;
+    inset: -10%;
+    z-index: 0;
+    pointer-events: none;
+    will-change: transform;
+    animation: glowBreathe 7s ease-in-out infinite;
+    background:
+      radial-gradient(ellipse 75% 55% at 50% 100%, hsl(18 95% 38% / 0.72) 0%, transparent 68%),
+      radial-gradient(ellipse 60% 50% at  8% 85%, hsl(0  80% 35% / 0.50) 0%, transparent 58%),
+      radial-gradient(ellipse 60% 50% at 92% 85%, hsl(35 85% 35% / 0.50) 0%, transparent 58%),
+      radial-gradient(ellipse 45% 35% at 50%  2%, hsl(20 65% 18% / 0.60) 0%, transparent 62%),
+      radial-gradient(ellipse 30% 20% at 50% 50%, hsl(18 80% 20% / 0.15) 0%, transparent 80%);
+  }
+
+  @keyframes glowBreathe {
+    0%, 100% { opacity: 1; }
+    45%       { opacity: 0.62; }
+    50%       { opacity: 0.60; }
+    55%       { opacity: 0.62; }
+  }
+
   /* Ember particle base */
   .ember-particle {
     position: absolute;
@@ -206,13 +241,19 @@
     pointer-events: none;
     animation: emberFloat var(--dur, 6s) ease-in var(--delay, 0s) infinite;
     opacity: 0;
+    box-shadow: 0 0 6px 2px hsl(var(--fire) / 0.8), 0 0 12px 4px hsl(35 90% 55% / 0.4);
+  }
+  .ember-particle.spark {
+    background: hsl(45 100% 75%);
+    box-shadow: 0 0 8px 3px hsl(45 100% 70% / 0.9), 0 0 20px 6px hsl(18 90% 55% / 0.5);
   }
 
   @keyframes emberFloat {
-    0%   { transform: translateY(0) translateX(0) scale(1); opacity: 0; }
-    10%  { opacity: 0.8; }
-    50%  { transform: translateY(-40vh) translateX(var(--drift, 20px)) scale(0.6); opacity: 0.5; }
-    100% { transform: translateY(-90vh) translateX(var(--drift2, -10px)) scale(0.2); opacity: 0; }
+    0%   { transform: translateY(0)       translateX(0)                       scale(1);    opacity: 0;   }
+    6%   { transform: translateY(-5vh)    translateX(calc(var(--drift) * 0.1)) scale(0.95); opacity: 1;   }
+    40%  { transform: translateY(-48vh)   translateX(var(--drift, 20px))       scale(0.70); opacity: 0.90; }
+    75%  { transform: translateY(-85vh)   translateX(var(--drift2, -10px))     scale(0.40); opacity: 0.55; }
+    100% { transform: translateY(-115vh)  translateX(var(--drift2, -10px))     scale(0.10); opacity: 0;   }
   }
 
   /* Character creation card */
@@ -254,6 +295,23 @@
 .dm-content p { margin-bottom: 0.75rem; line-height: 1.75; }
 .dm-content p:last-child { margin-bottom: 0; }
 .dm-content em { color: hsl(var(--ember)); font-style: italic; }
+
+/* Chronicle prose — DM narration in the game view */
+.chronicle-prose {
+  font-family: var(--font-serif, 'Lora', Georgia, serif);
+  font-size: 0.9375rem;   /* 15px */
+  line-height: 1.8;
+  letter-spacing: 0.01em;
+  color: hsl(38 22% 80% / 0.92);
+}
+.chronicle-prose .narration p {
+  margin-bottom: 0.7em;
+}
+.chronicle-prose .narration h3,
+.chronicle-prose .narration h4 {
+  font-family: var(--font-display, 'Cinzel', serif);
+  letter-spacing: 0.08em;
+}
 .dm-content strong { color: hsl(var(--foreground)); font-weight: 600; }
 .dm-content .status-line {
   font-family: 'Cinzel', serif;

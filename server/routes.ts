@@ -281,9 +281,11 @@ export async function registerRoutes(httpServer: Server, app: Express) {
     }
   });
 
-  // TTS endpoint — ElevenLabs or Speechify
+  // TTS endpoint — ElevenLabs (user's key) or Speechify
+  // Note: ElevenLabs TTS is preferably called client-side in tts.ts directly.
+  // This endpoint is a server-side proxy for Speechify.
   app.post('/api/tts', async (req, res) => {
-    const { text, voice = 'james', provider = 'elevenlabs', speechifyKey } = req.body;
+    const { text, voice = 'george', provider = 'elevenlabs', speechifyKey, elevenLabsKey } = req.body;
     if (!text) return res.status(400).json({ error: 'text required' });
 
     // ── Speechify ────────────────────────────────────────────────────────────
@@ -303,33 +305,66 @@ export async function registerRoutes(httpServer: Server, app: Express) {
           }),
         });
         if (sfRes.ok) {
-          const buf = await sfRes.arrayBuffer();
-          const b64 = Buffer.from(buf).toString('base64');
-          return res.json({ audio: `data:audio/mpeg;base64,${b64}` });
+          // Speechify returns JSON: { audio_data: "<base64_mp3>", audio_format: "mp3" }
+          const json = await sfRes.json() as { audio_data?: string; audio?: string };
+          const b64 = json.audio_data || json.audio;
+          if (b64) {
+            return res.json({ audio: `data:audio/mpeg;base64,${b64}` });
+          }
+          // Fallback: maybe it returned raw bytes after all
+          console.error('Speechify: unexpected response shape', Object.keys(json));
+        } else {
+          console.error('Speechify error:', sfRes.status, await sfRes.text().catch(() => ''));
         }
-        console.error('Speechify error:', sfRes.status, await sfRes.text().catch(() => ''));
       } catch (err) {
         console.error('Speechify request failed:', err);
       }
       return res.json({ audio: null, fallback: true });
     }
 
-    // ── ElevenLabs (via Python helper) ───────────────────────────────────────
-    try {
-      const { execFile } = await import('child_process');
-      const { promisify }  = await import('util');
-      const path           = await import('path');
-      const execFileAsync  = promisify(execFile);
-
-      const scriptPath = path.join(process.cwd(), 'server', 'tts_helper.py');
-      const { stdout } = await execFileAsync('python3', [scriptPath, text.substring(0, 2000), voice], {
-        timeout: 30000,
-      });
-
-      res.json({ audio: `data:audio/mpeg;base64,${stdout.trim()}` });
-    } catch (err) {
-      console.error('TTS error:', err);
-      res.json({ audio: null, fallback: true });
+    // ── ElevenLabs — direct REST call with user's API key ────────────────────
+    if (provider === 'elevenlabs' && elevenLabsKey) {
+      const voiceIdMap: Record<string, string> = {
+        george:  'JBFqnCBsd6RMkjVDRZzb',
+        james:   'ZQe5CZNOzWyzPSCn5a3c',
+        daniel:  'onwK4e9ZLuTAKqWW03F9',
+        brian:   'nPczCjzI2devNBz1zQrb',
+        callum:  'N2lVS1w4EtoT3dr4eOWO',
+        harry:   'SOYHLrjzK2X1ezoPC6cr',
+        josh:    'TxGEqnHWrfWFTfGW9XjX',
+      };
+      // If voice matches a known alias, resolve it; otherwise treat as a raw ElevenLabs voice ID
+      const voiceId = voiceIdMap[voice.toLowerCase()] || voice;
+      // Truncate to first paragraph only — keeps audio response small and fast
+      const speakText = text.split(/\n\n/)[0].substring(0, 500).trim();
+      try {
+        const elRes = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+          method: 'POST',
+          headers: {
+            'xi-api-key': elevenLabsKey,
+            'Content-Type': 'application/json',
+            'Accept': 'audio/mpeg',
+          },
+          body: JSON.stringify({
+            text: speakText,
+            model_id: 'eleven_turbo_v2_5',
+            voice_settings: { stability: 0.45, similarity_boost: 0.82, style: 0.15, use_speaker_boost: true },
+          }),
+        });
+        if (elRes.ok) {
+          // Return raw binary audio — avoids base64 bloat and proxy body-size limits
+          const buf = await elRes.arrayBuffer();
+          res.setHeader('Content-Type', 'audio/mpeg');
+          res.setHeader('Content-Length', buf.byteLength);
+          return res.send(Buffer.from(buf));
+        }
+        console.error('ElevenLabs server error:', elRes.status, await elRes.text().catch(() => ''));
+      } catch (err) {
+        console.error('ElevenLabs server failed:', err);
+      }
     }
+
+    // No key provided or all providers failed
+    res.json({ audio: null, fallback: true });
   });
 }

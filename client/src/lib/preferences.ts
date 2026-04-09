@@ -3,26 +3,23 @@
  * localStorage/sessionStorage are blocked in iframes — this singleton persists for the session.
  */
 
-export type VoiceProvider = 'browser' | 'elevenlabs' | 'speechify';
-
 export interface VoicePrefs {
-  provider: VoiceProvider;
-  elevenLabsVoice: string;
-  speechifyKey: string;
-  speechifyVoiceId: string;
+  elevenLabsApiKey: string;   // User's own ElevenLabs key (free tier works)
+  voiceName: string;          // Known name ('george', 'harry', etc.) OR a raw ElevenLabs voice ID
 }
 
+// To use your own ElevenLabs voice, enter your API key in Settings → Narrator Voice
+// or set VITE_ELEVENLABS_API_KEY in your .env file.
 const prefs: VoicePrefs = {
-  provider: 'elevenlabs',
-  elevenLabsVoice: 'james',
-  speechifyKey: '',
-  speechifyVoiceId: 'john',
+  elevenLabsApiKey: import.meta.env.VITE_ELEVENLABS_API_KEY || '',
+  voiceName: import.meta.env.VITE_ELEVENLABS_VOICE_ID || 'george',
 };
 
 export const Prefs = {
   get voice(): VoicePrefs { return { ...prefs }; },
-  setProvider(p: VoiceProvider) { prefs.provider = p; },
-  setElevenLabsVoice(v: string) { prefs.elevenLabsVoice = v; },
-  setSpeechifyKey(k: string) { prefs.speechifyKey = k; },
-  setSpeechifyVoiceId(v: string) { prefs.speechifyVoiceId = v; },
+  setElevenLabsApiKey(k: string) { prefs.elevenLabsApiKey = k; },
+  setVoiceName(v: string)        { prefs.voiceName = v; },
 };
+
+// Legacy shim — keep VoiceProvider type so existing imports don't break
+export type VoiceProvider = 'elevenlabs';

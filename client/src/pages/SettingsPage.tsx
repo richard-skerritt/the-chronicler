@@ -1,25 +1,25 @@
 import { useState } from 'react';
 import { Link } from 'wouter';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
+import { apiRequest, API_BASE } from '@/lib/queryClient';
 import type { Campaign } from '@shared/schema';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import ChroniclerLogo from '@/components/ChroniclerLogo';
-import { ArrowLeft, Save, RotateCcw, Volume2, Check } from 'lucide-react';
+import { ArrowLeft, Save, RotateCcw, Volume2, Check, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { Prefs, type VoiceProvider } from '@/lib/preferences';
+import { Prefs } from '@/lib/preferences';
 
-// ElevenLabs narrator voices (male, cinematic)
-const ELEVENLABS_VOICES = [
-  { id: 'james',   label: 'James',   desc: 'Deep, authoritative narrator' },
-  { id: 'george',  label: 'George',  desc: 'Rich baritone storyteller' },
-  { id: 'daniel',  label: 'Daniel',  desc: 'Smooth, clear narrator' },
-  { id: 'brian',   label: 'Brian',   desc: 'Calm, measured tone' },
-  { id: 'callum',  label: 'Callum',  desc: 'Warm, expressive voice' },
-  { id: 'harry',   label: 'Harry',   desc: 'Dramatic, powerful delivery' },
+const PRESET_VOICES = [
+  { id: 'george',  label: 'George',  desc: 'Raspy British — narrator' },
+  { id: 'james',   label: 'James',   desc: 'Deep, authoritative' },
+  { id: 'daniel',  label: 'Daniel',  desc: 'Smooth British' },
+  { id: 'harry',   label: 'Harry',   desc: 'Dramatic, powerful' },
+  { id: 'callum',  label: 'Callum',  desc: 'Warm, expressive' },
+  { id: 'brian',   label: 'Brian',   desc: 'Deep, measured' },
+  { id: '_custom', label: 'My Voice', desc: 'Your custom ElevenLabs voice' },
 ];
 
 export default function SettingsPage() {
@@ -34,12 +34,15 @@ export default function SettingsPage() {
   const [zellaGold, setZellaGold] = useState('');
   const [location, setLocation] = useState('');
 
-  // Voice settings (pulled from prefs singleton)
-  const [voiceProvider, setVoiceProviderState] = useState<VoiceProvider>(Prefs.voice.provider);
-  const [elVoice, setElVoiceState] = useState(Prefs.voice.elevenLabsVoice);
-  const [sfKey, setSfKeyState] = useState(Prefs.voice.speechifyKey);
-  const [sfVoiceId, setSfVoiceIdState] = useState(Prefs.voice.speechifyVoiceId);
-  const [testingVoice, setTestingVoice] = useState(false);
+  // Voice settings
+  const [elApiKey, setElApiKeyState] = useState(Prefs.voice.elevenLabsApiKey);
+  const savedVoice = Prefs.voice.voiceName;
+  const isCustomSaved = !PRESET_VOICES.slice(0, -1).find(v => v.id === savedVoice);
+  const [selectedVoice, setSelectedVoice] = useState(isCustomSaved ? '_custom' : savedVoice);
+  const [customVoiceId, setCustomVoiceId] = useState(isCustomSaved ? savedVoice : '');
+  type TestStatus = 'idle' | 'testing' | 'success' | 'error';
+  type TestResult = { status: TestStatus; message: string; detail?: string };
+  const [testResult, setTestResult] = useState<TestResult>({ status: 'idle', message: '' });
 
   const updateMutation = useMutation({
     mutationFn: (data: Partial<Campaign>) =>
@@ -70,27 +73,62 @@ export default function SettingsPage() {
   });
 
   const saveVoice = () => {
-    Prefs.setProvider(voiceProvider);
-    Prefs.setElevenLabsVoice(elVoice);
-    Prefs.setSpeechifyKey(sfKey);
-    Prefs.setSpeechifyVoiceId(sfVoiceId);
-    toast({ title: 'Voice saved', description: `Using ${voiceProvider === 'speechify' ? 'Speechify' : voiceProvider === 'elevenlabs' ? 'ElevenLabs' : 'browser'} voice.` });
+    const resolved = selectedVoice === '_custom' ? customVoiceId.trim() : selectedVoice;
+    if (!resolved) {
+      toast({ title: 'No voice selected', description: 'Enter a custom voice ID or pick a preset voice.' });
+      return;
+    }
+    Prefs.setElevenLabsApiKey(elApiKey);
+    Prefs.setVoiceName(resolved);
+    const label = selectedVoice === '_custom' ? `Custom (${resolved.substring(0, 8)}…)` : resolved;
+    toast({ title: 'Voice saved', description: elApiKey ? `Using: ${label}` : 'Add your API key to enable narration.' });
   };
 
   const testVoice = async () => {
-    setTestingVoice(true);
+    setTestResult({ status: 'testing', message: 'Connecting to ElevenLabs…' });
     try {
-      const { speakText } = await import('@/lib/tts');
-      await speakText('The caves stretch before you, dark and full of promise. Welcome, adventurer.', {
-        voice: voiceProvider,
-        voiceName: elVoice,
-        speechifyKey: sfKey,
-        speechifyVoiceId: sfVoiceId,
-        onEnd: () => setTestingVoice(false),
-        onError: () => setTestingVoice(false),
+      if (!elApiKey.trim()) {
+        setTestResult({ status: 'error', message: 'No API key entered', detail: 'Paste your ElevenLabs API key above. Get one free at elevenlabs.io → Profile → API Keys.' });
+        return;
+      }
+      const rawVoiceName = selectedVoice === '_custom' ? customVoiceId.trim() : selectedVoice;
+      if (!rawVoiceName) {
+        setTestResult({ status: 'error', message: 'No voice selected', detail: 'Pick a preset voice or enter your custom voice ID.' });
+        return;
+      }
+      // Route via server proxy (avoids iframe CSP restrictions on direct ElevenLabs calls)
+      const { touchAudioContext } = await import('@/lib/tts');
+      const res = await fetch(`${API_BASE}/api/tts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text: 'The caves stretch before you, dark and full of ancient mystery. Welcome, adventurer.',
+          provider: 'elevenlabs',
+          voice: rawVoiceName,
+          elevenLabsKey: elApiKey,
+        }),
       });
-    } catch {
-      setTestingVoice(false);
+      if (!res.ok) {
+        setTestResult({ status: 'error', message: `Server error — HTTP ${res.status}`, detail: 'The server could not reach ElevenLabs. Check your internet connection.' });
+        return;
+      }
+      const data = await res.json() as { audio?: string | null; error?: string };
+      if (!data.audio) {
+        setTestResult({ status: 'error', message: 'ElevenLabs returned no audio', detail: data.error || `Key may be invalid, or voice ID "${rawVoiceName.substring(0, 20)}" not found on your account.` });
+        return;
+      }
+      touchAudioContext();
+      const audio = new Audio(data.audio);
+      audio.onerror = () => setTestResult({ status: 'error', message: 'Audio received but failed to play', detail: 'Try clicking anywhere on the page first, then Test Voice again.' });
+      audio.play()
+        .then(() => setTestResult({
+          status: 'success',
+          message: 'Connected — audio playing',
+          detail: `Voice "${rawVoiceName}" is working correctly. Click Save Voice to use it in the game.`,
+        }))
+        .catch(() => setTestResult({ status: 'error', message: 'Audio received but autoplay blocked', detail: 'Click anywhere on the page first, then try Test Voice again.' }));
+    } catch (err) {
+      setTestResult({ status: 'error', message: 'Unexpected error', detail: String(err) });
     }
   };
 
@@ -159,38 +197,38 @@ export default function SettingsPage() {
           <div>
             <h2 className="font-display text-amber-300 text-sm tracking-widest mb-1">NARRATOR VOICE</h2>
             <p className="text-muted-foreground text-xs mb-4">
-              Choose how The Chronicler speaks. ElevenLabs voices are high-quality AI narrators. Speechify requires your API key.
+              Powered by{' '}
+              <a href="https://elevenlabs.io" target="_blank" rel="noopener noreferrer" className="underline text-amber-400/80 hover:text-amber-400">ElevenLabs</a>.
+              {' '}Get a free API key at elevenlabs.io → Profile → API Keys.
             </p>
 
-            {/* Provider tabs */}
-            <div className="flex gap-2 mb-4">
-              {(['elevenlabs', 'speechify', 'browser'] as VoiceProvider[]).map(p => (
-                <button
-                  key={p}
-                  onClick={() => setVoiceProviderState(p)}
-                  className={`px-3 py-1.5 rounded text-xs font-display tracking-wide transition-colors ${
-                    voiceProvider === p
-                      ? 'bg-amber-600 text-stone-900'
-                      : 'bg-stone-800 text-muted-foreground hover:text-foreground'
-                  }`}
-                  data-testid={`button-provider-${p}`}
-                >
-                  {p === 'elevenlabs' ? 'ElevenLabs' : p === 'speechify' ? 'Speechify' : 'Browser'}
-                </button>
-              ))}
-            </div>
+            <div className="space-y-4">
+              {/* API Key */}
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground font-display">
+                  API Key
+                  {elApiKey && <span className="ml-2 text-green-400">✓ set</span>}
+                </Label>
+                <Input
+                  type="password"
+                  placeholder="sk_... — get free key at elevenlabs.io"
+                  value={elApiKey}
+                  onChange={e => setElApiKeyState(e.target.value)}
+                  className="bg-input border-stone-700 h-9 text-sm font-mono"
+                  data-testid="input-el-api-key"
+                />
+              </div>
 
-            {/* ElevenLabs voice picker */}
-            {voiceProvider === 'elevenlabs' && (
+              {/* Voice picker */}
               <div className="space-y-2">
-                <p className="text-xs text-muted-foreground mb-2">Select narrator voice:</p>
+                <Label className="text-xs text-muted-foreground font-display">Narrator Voice</Label>
                 <div className="grid grid-cols-2 gap-2">
-                  {ELEVENLABS_VOICES.map(v => (
+                  {PRESET_VOICES.map(v => (
                     <button
                       key={v.id}
-                      onClick={() => setElVoiceState(v.id)}
+                      onClick={() => setSelectedVoice(v.id)}
                       className={`p-2.5 rounded border text-left transition-colors ${
-                        elVoice === v.id
+                        selectedVoice === v.id
                           ? 'border-amber-600 bg-amber-950/30 text-foreground'
                           : 'border-stone-700 bg-stone-900/40 text-muted-foreground hover:border-stone-600'
                       }`}
@@ -198,67 +236,45 @@ export default function SettingsPage() {
                     >
                       <div className="flex items-center justify-between">
                         <span className="font-display text-xs tracking-wide">{v.label}</span>
-                        {elVoice === v.id && <Check className="h-3 w-3 text-amber-400" />}
+                        {selectedVoice === v.id && <Check className="h-3 w-3 text-amber-400" />}
                       </div>
                       <p className="text-xs opacity-60 mt-0.5">{v.desc}</p>
                     </button>
                   ))}
                 </div>
               </div>
-            )}
 
-            {/* Speechify settings */}
-            {voiceProvider === 'speechify' && (
-              <div className="space-y-3">
-                <div className="bg-amber-950/20 border border-amber-800/30 rounded p-3 text-xs text-amber-300/80">
-                  Get your API key from{' '}
-                  <a href="https://studio.speechify.com" target="_blank" rel="noopener noreferrer"
-                    className="underline text-amber-400">studio.speechify.com</a>
-                  {' '}→ API Settings. The "John" voice ID is <code className="bg-stone-800 px-1 rounded">john</code>.
-                </div>
+              {/* Custom voice ID input */}
+              {selectedVoice === '_custom' && (
                 <div className="space-y-1.5">
-                  <Label className="text-xs text-muted-foreground font-display">Speechify API Key</Label>
+                  <Label className="text-xs text-muted-foreground font-display">Your Voice ID</Label>
                   <Input
-                    type="password"
-                    placeholder="sk-..."
-                    value={sfKey}
-                    onChange={e => setSfKeyState(e.target.value)}
-                    className="bg-input border-stone-700 h-8 text-sm font-mono"
-                    data-testid="input-speechify-key"
+                    placeholder="Paste your ElevenLabs voice ID here"
+                    value={customVoiceId}
+                    onChange={e => setCustomVoiceId(e.target.value)}
+                    className="bg-input border-stone-700 h-9 text-sm font-mono"
+                    data-testid="input-custom-voice-id"
                   />
+                  <p className="text-xs text-muted-foreground">
+                    Find it in ElevenLabs → Voice Library → your voice → ID (looks like <span className="font-mono">abc1def2ghi3…</span>)
+                  </p>
                 </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs text-muted-foreground font-display">Voice ID</Label>
-                  <Input
-                    placeholder="john"
-                    value={sfVoiceId}
-                    onChange={e => setSfVoiceIdState(e.target.value)}
-                    className="bg-input border-stone-700 h-8 text-sm"
-                    data-testid="input-speechify-voice-id"
-                  />
-                  <p className="text-xs text-muted-foreground">Common IDs: john, jane, ryan, oliver</p>
-                </div>
-              </div>
-            )}
-
-            {/* Browser info */}
-            {voiceProvider === 'browser' && (
-              <p className="text-xs text-muted-foreground">
-                Uses your browser's built-in text-to-speech engine. Quality varies by browser — Chrome on desktop gives the best results.
-              </p>
-            )}
+              )}
+            </div>
 
             {/* Test + Save buttons */}
             <div className="flex gap-2 mt-4">
               <Button
                 onClick={testVoice}
-                disabled={testingVoice}
+                disabled={testResult.status === 'testing'}
                 variant="outline"
                 className="border-stone-700 text-muted-foreground hover:text-amber-400 font-display text-xs"
                 data-testid="button-test-voice"
               >
-                <Volume2 className="h-3.5 w-3.5 mr-1.5" />
-                {testingVoice ? 'Speaking...' : 'Test Voice'}
+                {testResult.status === 'testing'
+                  ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                  : <Volume2 className="h-3.5 w-3.5 mr-1.5" />}
+                {testResult.status === 'testing' ? 'Testing…' : 'Test Voice'}
               </Button>
               <Button
                 onClick={saveVoice}
@@ -269,6 +285,30 @@ export default function SettingsPage() {
                 Save Voice
               </Button>
             </div>
+
+            {/* Test result banner */}
+            {testResult.status !== 'idle' && (
+              <div
+                className={`mt-3 rounded-lg border p-3 flex items-start gap-2.5 text-xs transition-all ${
+                  testResult.status === 'testing' ? 'border-stone-700 bg-stone-900/60 text-muted-foreground' :
+                  testResult.status === 'success' ? 'border-green-700/50 bg-green-950/25 text-green-300' :
+                  'border-red-800/50 bg-red-950/20 text-red-300'
+                }`}
+                data-testid="banner-test-result"
+              >
+                <span className="mt-0.5 shrink-0">
+                  {testResult.status === 'testing' && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                  {testResult.status === 'success' && <CheckCircle className="h-4 w-4 text-green-400" />}
+                  {testResult.status === 'error'   && <XCircle   className="h-4 w-4 text-red-400" />}
+                </span>
+                <div className="min-w-0">
+                  <p className="font-display tracking-wide leading-snug">{testResult.message}</p>
+                  {testResult.detail && (
+                    <p className="mt-1 opacity-70 leading-relaxed">{testResult.detail}</p>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           <Separator className="bg-stone-800" />
@@ -390,7 +430,7 @@ export default function SettingsPage() {
             <h2 className="font-display text-amber-300 text-sm tracking-widest mb-3">ABOUT THE CHRONICLER</h2>
             <div className="space-y-2 text-sm text-muted-foreground leading-relaxed">
               <p>The Chronicler is an AI-powered Game Master for tabletop RPG adventures. Players use physical game components — maps, tokens, and dice — while The Chronicler handles narration, NPC roleplay, rules adjudication, and immersive storytelling.</p>
-              <p className="text-xs">Built with Claude AI (Anthropic) · ElevenLabs TTS · Speechify · React + Express</p>
+              <p className="text-xs">Built with Claude AI (Anthropic) · ElevenLabs TTS · React + Express</p>
               <p className="text-xs text-amber-500/60">Based on the D&amp;D Heroes of the Borderlands (2025 Starter Set) campaign</p>
             </div>
           </div>
