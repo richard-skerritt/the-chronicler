@@ -326,8 +326,8 @@ export default function GamePage() {
       voice: 'elevenlabs',
       voiceName: p.voiceName,
       elevenLabsApiKey: p.elevenLabsApiKey,
-      rate: 0.9,
-      pitch: 0.8,
+      rate: 0.78,
+      pitch: 0.72,
       onEnd: () => setTtsActive(false),
       onError: () => setTtsActive(false),
     });
@@ -369,8 +369,8 @@ export default function GamePage() {
         voice: 'elevenlabs',
         voiceName: p.voiceName,
         elevenLabsApiKey: p.elevenLabsApiKey,
-        rate: 0.9,
-        pitch: 0.8,
+        rate: 0.78,
+        pitch: 0.72,
         onEnd: () => setTtsActive(false),
         onError: () => setTtsActive(false),
       });

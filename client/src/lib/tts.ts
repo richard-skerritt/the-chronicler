@@ -120,8 +120,8 @@ export async function speakText(text: string, options: TTSOptions = {}): Promise
     elevenLabsApiKey = '',
     speechifyKey = '',
     speechifyVoiceId = 'john',
-    rate = 0.9,
-    pitch = 0.8,
+    rate = 0.78,    // slower = more gravitas
+    pitch = 0.72,   // lower pitch = authoritative
     volume = 1,
     onStart,
     onEnd,
@@ -250,12 +250,17 @@ export function speakWithBrowser(
   const tryLoadVoices = () => {
     const voices = window.speechSynthesis.getVoices();
     if (voices.length === 0) return null;
+    // Prefer deep, authoritative British/English male voices in order of quality
     return (
       voices.find(v => v.name === 'Google UK English Male') ||
+      voices.find(v => v.name.toLowerCase().includes('microsoft george')) ||
+      voices.find(v => v.name.toLowerCase().includes('microsoft ryan')) ||
+      voices.find(v => v.name.toLowerCase().includes('microsoft william')) ||
       voices.find(v => v.name.toLowerCase().includes('microsoft david')) ||
       voices.find(v => v.name.toLowerCase().includes('microsoft mark')) ||
-      voices.find(v => v.lang === 'en-GB' && !v.name.toLowerCase().includes('female') && !v.name.toLowerCase().includes('zira') && !v.name.toLowerCase().includes('hazel')) ||
-      voices.find(v => v.lang.startsWith('en') && !v.name.toLowerCase().includes('female') && !v.name.toLowerCase().includes('zira') && !v.name.toLowerCase().includes('samantha')) ||
+      voices.find(v => v.lang === 'en-GB' && !v.name.toLowerCase().match(/female|zira|hazel|susan/)) ||
+      voices.find(v => v.lang === 'en-AU' && !v.name.toLowerCase().match(/female|karen|catherine/)) ||
+      voices.find(v => v.lang.startsWith('en') && !v.name.toLowerCase().match(/female|zira|samantha|victoria|karen/)) ||
       null
     );
   };

@@ -112,13 +112,30 @@ export default function SettingsPage() {
         setTestResult({ status: 'error', message: `Server error — HTTP ${res.status}`, detail: 'The server could not reach ElevenLabs. Check your internet connection.' });
         return;
       }
-      const data = await res.json() as { audio?: string | null; error?: string };
-      if (!data.audio) {
-        setTestResult({ status: 'error', message: 'ElevenLabs returned no audio', detail: data.error || `Key may be invalid, or voice ID "${rawVoiceName.substring(0, 20)}" not found on your account.` });
+
+      // Server returns raw binary MP3 on success, JSON on fallback/error
+      const ct = res.headers.get('content-type') || '';
+      let audioSrc: string | null = null;
+      let blobUrl: string | null = null;
+
+      if (ct.includes('audio')) {
+        // Binary MP3 — wrap in a blob URL
+        const blob = await res.blob();
+        blobUrl = URL.createObjectURL(blob);
+        audioSrc = blobUrl;
+      } else {
+        const data = await res.json() as { audio?: string | null; fallback?: boolean; error?: string };
+        if (data.audio) audioSrc = data.audio;
+      }
+
+      if (!audioSrc) {
+        setTestResult({ status: 'error', message: 'ElevenLabs returned no audio', detail: `Key may be invalid, or voice ID "${rawVoiceName.substring(0, 20)}" not found on your account.` });
         return;
       }
+
       touchAudioContext();
-      const audio = new Audio(data.audio);
+      const audio = new Audio(audioSrc);
+      audio.onended = () => { if (blobUrl) URL.revokeObjectURL(blobUrl); };
       audio.onerror = () => setTestResult({ status: 'error', message: 'Audio received but failed to play', detail: 'Try clicking anywhere on the page first, then Test Voice again.' });
       audio.play()
         .then(() => setTestResult({

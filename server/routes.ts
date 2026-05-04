@@ -348,7 +348,10 @@ export async function registerRoutes(httpServer: Server, app: Express) {
           body: JSON.stringify({
             text: speakText,
             model_id: 'eleven_turbo_v2_5',
-            voice_settings: { stability: 0.45, similarity_boost: 0.82, style: 0.15, use_speaker_boost: true },
+            // Higher stability = more measured, consistent delivery (less sing-song)
+            // Lower similarity_boost = allows voice its own natural authority
+            // Higher style = more character, gravitas, dramatic weight
+            voice_settings: { stability: 0.68, similarity_boost: 0.72, style: 0.44, use_speaker_boost: true },
           }),
         });
         if (elRes.ok) {

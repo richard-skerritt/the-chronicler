@@ -9,7 +9,10 @@
       "PowerShell($path = \"C:\\\\Users\\\\PC\\\\Documents\\\\Claude\\\\Projects\\\\Chronicler Dev\\\\node_modules\\\\better-sqlite3\"; [System.IO.Directory]::Exists\\($path\\); [System.IO.Directory]::GetFileSystemEntries\\($path\\).Count)",
       "PowerShell(cd \"C:\\\\Users\\\\PC\\\\Documents\\\\Claude\\\\Projects\\\\Chronicler Dev\"; [System.IO.Directory]::GetFileSystemEntries\\(\"node_modules\\\\better-sqlite3\"\\).Count; [System.IO.Directory]::GetFileSystemEntries\\(\"node_modules\\\\better-sqlite3\\\\prebuilds\"\\).Count 2>&1)",
       "PowerShell(node -e \"console.log\\('ABI:', process.versions.modules, 'Node:', process.version\\)\")",
-      "PowerShell(npm view *)"
+      "PowerShell(npm view *)",
+      "Bash(npm run *)",
+      "PowerShell(cd \"C:\\\\Users\\\\PC\\\\Documents\\\\Claude\\\\Projects\\\\Chronicler Dev\"; $env:NODE_ENV = \"development\"; npx tsx server/index.ts 2>&1)",
+      "PowerShell(Start-Process \"http://localhost:5000\"; Start-Sleep -Seconds 3; Write-Host \"Browser opened\")"
     ]
   }
 }
