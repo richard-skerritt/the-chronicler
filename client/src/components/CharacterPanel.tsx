@@ -49,32 +49,38 @@ export default function CharacterPanel({ campaign }: Props) {
   const zellaUsed = campaign.zellaMaxSpellSlots - campaign.zellaSpellSlots;
 
   return (
-    <div className="flex border-t border-stone-800/50 px-4 py-2 gap-6 bg-stone-950/40">
+    <div
+      className="flex px-4 py-2 gap-6"
+      style={{
+        borderTop: '1px solid hsl(var(--gold-dark) / 0.2)',
+        background: 'hsl(248 28% 6% / 0.6)',
+      }}
+    >
       {/* Gideon */}
       <div className="flex-1 min-w-0" data-testid="panel-gideon">
         <div className="flex items-center justify-between mb-1">
           <div className="flex items-center gap-1.5">
             <span className="text-xs">🗡️</span>
-            <span className="font-display text-amber-300 text-xs tracking-wide">GIDEON</span>
+            <span className="font-display text-xs tracking-wide" style={{ color: 'hsl(42 78% 68%)' }}>GIDEON</span>
             <span className="text-xs text-muted-foreground/60">Halfling Rogue</span>
           </div>
           <span className="text-xs text-muted-foreground">AC 13</span>
         </div>
         <HPBar current={campaign.gideonHp} max={campaign.gideonMaxHp} />
         <div className="flex items-center justify-between mt-1">
-          <span className="text-xs text-amber-600/70">💰 {campaign.gideonGold} GP</span>
+          <span className="text-xs" style={{ color: 'hsl(42 60% 48% / 0.75)' }}>💰 {campaign.gideonGold} GP</span>
           <span className="text-xs text-muted-foreground/50">Initiative +3</span>
         </div>
       </div>
 
-      <div className="w-px bg-stone-700/50" />
+      <div className="w-px" style={{ background: 'hsl(var(--gold-dark) / 0.2)' }} />
 
       {/* Zella */}
       <div className="flex-1 min-w-0" data-testid="panel-zella">
         <div className="flex items-center justify-between mb-1">
           <div className="flex items-center gap-1.5">
             <span className="text-xs">✨</span>
-            <span className="font-display text-purple-300 text-xs tracking-wide">ZELLA</span>
+            <span className="font-display text-xs tracking-wide" style={{ color: 'hsl(265 52% 72%)' }}>ZELLA</span>
             <span className="text-xs text-muted-foreground/60">Human Wizard</span>
           </div>
           <span className="text-xs text-muted-foreground">AC 12</span>
@@ -82,7 +88,7 @@ export default function CharacterPanel({ campaign }: Props) {
         <HPBar current={campaign.zellaHp} max={campaign.zellaMaxHp} />
         <div className="flex items-center justify-between mt-1">
           <div className="flex items-center gap-2">
-            <span className="text-xs text-amber-600/70">💰 {campaign.zellaGold} GP</span>
+            <span className="text-xs" style={{ color: 'hsl(42 60% 48% / 0.75)' }}>💰 {campaign.zellaGold} GP</span>
             <SpellPips used={zellaUsed} max={campaign.zellaMaxSpellSlots} />
           </div>
           <span className="text-xs text-muted-foreground/50">Initiative +2</span>

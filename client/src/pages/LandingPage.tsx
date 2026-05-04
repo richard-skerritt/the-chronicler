@@ -3,41 +3,39 @@ import { useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import type { Campaign } from '@shared/schema';
 import ChroniclerLogo from '@/components/ChroniclerLogo';
-import { Button } from '@/components/ui/button';
 import { Sword, BookOpen, Scroll, Flame } from 'lucide-react';
 
 // ── Ember particle data ───────────────────────────────────────────────────────
-const EMBERS = Array.from({ length: 22 }, (_, i) => ({
+const EMBERS = Array.from({ length: 28 }, (_, i) => ({
   id: i,
-  left:  `${5 + Math.random() * 90}%`,
+  left:  `${3 + Math.random() * 94}%`,
   size:  `${3 + Math.random() * 5}px`,
-  dur:   `${5 + Math.random() * 8}s`,
-  delay: `${Math.random() * 7}s`,
-  drift: `${-30 + Math.random() * 60}px`,
-  drift2:`${-20 + Math.random() * 40}px`,
-  bottom:`${Math.random() * 30}%`,
-  opacity: 0.4 + Math.random() * 0.5,
-  color: Math.random() > 0.4 ? 'hsl(18 90% 58%)' : Math.random() > 0.5 ? 'hsl(42 90% 62%)' : 'hsl(0 72% 52%)',
+  dur:   `${5 + Math.random() * 9}s`,
+  delay: `${Math.random() * 8}s`,
+  drift: `${-35 + Math.random() * 70}px`,
+  drift2:`${-22 + Math.random() * 44}px`,
+  bottom:`${Math.random() * 28}%`,
+  opacity: 0.45 + Math.random() * 0.5,
+  isSpark: Math.random() > 0.72,
+  color: Math.random() > 0.45
+    ? 'hsl(18 90% 56%)'
+    : Math.random() > 0.5
+      ? 'hsl(42 92% 64%)'
+      : 'hsl(0 75% 52%)',
 }));
 
 export default function LandingPage() {
   const [, navigate] = useLocation();
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Check if a campaign/save exists
   const { data: campaign } = useQuery<Campaign>({
     queryKey: ['/api/campaign'],
     retry: false,
   });
 
   const hasSave = !!campaign && (
-    campaign.gameMode === 'custom'
-      ? !!campaign.char1
-      : true  // heroes mode always has a playable state
+    campaign.gameMode === 'custom' ? !!campaign.char1 : true
   );
-
-  const hasStarted = !!campaign && campaign.gameMode !== 'heroes' || false;
-  // Show continue if there are any messages (i.e., game has been played)
 
   return (
     <div
@@ -45,19 +43,21 @@ export default function LandingPage() {
       className="landing-bg min-h-screen w-full flex flex-col items-center justify-center relative overflow-hidden select-none"
       data-testid="landing-page"
     >
-      {/* Ember particles */}
+      {/* ── Ember particles ── */}
       {EMBERS.map(e => (
         <div
           key={e.id}
-          className="absolute rounded-full pointer-events-none"
+          className={`absolute rounded-full pointer-events-none${e.isSpark ? ' spark' : ''}`}
           style={{
             left:   e.left,
             bottom: e.bottom,
             width:  e.size,
             height: e.size,
-            background: e.color,
+            background: e.isSpark ? 'hsl(46 100% 78%)' : e.color,
             opacity: 0,
-            boxShadow: `0 0 ${parseInt(e.size) * 2}px ${e.color}`,
+            boxShadow: e.isSpark
+              ? `0 0 ${parseInt(e.size) * 3}px hsl(46 100% 72%), 0 0 ${parseInt(e.size) * 6}px hsl(18 90% 55% / 0.5)`
+              : `0 0 ${parseInt(e.size) * 2}px ${e.color}`,
             animation: `emberFloat ${e.dur} ease-in ${e.delay} infinite`,
             '--drift':  e.drift,
             '--drift2': e.drift2,
@@ -65,37 +65,55 @@ export default function LandingPage() {
         />
       ))}
 
-      {/* Vignette overlay */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background: 'radial-gradient(ellipse 70% 70% at 50% 50%, transparent 30%, hsl(20 10% 3% / 0.7) 100%)',
-        }}
+      {/* ── Strong vignette ── */}
+      <div className="landing-vignette absolute inset-0 pointer-events-none" />
+
+      {/* ── Top ornate line ── */}
+      <div className="absolute top-0 left-0 right-0 h-px pointer-events-none"
+        style={{ background: 'linear-gradient(90deg, transparent 0%, hsl(42 88% 56% / 0.08) 15%, hsl(42 88% 56% / 0.55) 40%, hsl(18 90% 52% / 0.8) 50%, hsl(42 88% 56% / 0.55) 60%, hsl(42 88% 56% / 0.08) 85%, transparent 100%)' }}
+      />
+      <div className="absolute top-px left-0 right-0 h-px pointer-events-none opacity-30"
+        style={{ background: 'linear-gradient(90deg, transparent 5%, hsl(42 88% 56% / 0.3) 30%, hsl(42 88% 56% / 0.6) 50%, hsl(42 88% 56% / 0.3) 70%, transparent 95%)' }}
       />
 
-      {/* Top decorative line */}
-      <div className="absolute top-0 left-0 right-0 h-px"
-        style={{ background: 'linear-gradient(90deg, transparent, hsl(18 90% 52% / 0.5), hsl(42 88% 58% / 0.8), hsl(18 90% 52% / 0.5), transparent)' }}
-      />
-      <div className="absolute bottom-0 left-0 right-0 h-px"
-        style={{ background: 'linear-gradient(90deg, transparent, hsl(18 90% 52% / 0.4), transparent)' }}
+      {/* ── Bottom ornate line ── */}
+      <div className="absolute bottom-0 left-0 right-0 h-px pointer-events-none"
+        style={{ background: 'linear-gradient(90deg, transparent, hsl(18 90% 52% / 0.5), hsl(42 88% 56% / 0.7), hsl(18 90% 52% / 0.5), transparent)' }}
       />
 
-      {/* Main content */}
+      {/* ── Main content ── */}
       <div className="relative z-10 flex flex-col items-center text-center px-6 max-w-3xl mx-auto">
 
-        {/* Logo */}
+        {/* Logo — large, dramatic */}
         <div className="mb-8 torch-flicker">
-          <ChroniclerLogo className="w-20 h-20 mx-auto" style={{ filter: 'drop-shadow(0 0 20px hsl(18 90% 52% / 0.8)) drop-shadow(0 0 40px hsl(18 90% 52% / 0.4))' }} />
+          <ChroniclerLogo
+            className="w-24 h-24 mx-auto"
+            style={{
+              color: 'hsl(42 88% 64%)',
+              filter: [
+                'drop-shadow(0 0 18px hsl(42 88% 56% / 0.85))',
+                'drop-shadow(0 0 38px hsl(18 90% 52% / 0.45))',
+                'drop-shadow(0 0 70px hsl(18 90% 52% / 0.18))',
+              ].join(' '),
+            }}
+          />
         </div>
 
-        {/* Title */}
+        {/* ── Title ── */}
         <h1
-          className="font-display font-bold tracking-widest mb-3 leading-none"
+          className="font-display font-bold tracking-[0.18em] mb-2 leading-none"
           style={{
-            fontSize: 'clamp(2.8rem, 8vw, 5.5rem)',
-            color: 'hsl(38 28% 88%)',
-            textShadow: '0 0 30px hsl(18 90% 52% / 0.7), 0 0 60px hsl(18 90% 52% / 0.3), 0 2px 4px hsl(20 10% 3% / 0.8)',
+            fontSize: 'clamp(3rem, 9.5vw, 6.5rem)',
+            color: 'hsl(44 88% 76%)',
+            textShadow: [
+              '0 0 22px hsl(42 88% 56% / 0.9)',
+              '0 0 50px hsl(42 88% 56% / 0.5)',
+              '0 0 100px hsl(18 90% 52% / 0.22)',
+              '0 2px 0 hsl(36 55% 28% / 0.8)',
+              '0 3px 6px hsl(246 28% 3% / 0.9)',
+              '0 6px 20px hsl(246 28% 3% / 0.6)',
+              '2px 2px 0 hsl(36 40% 22% / 0.5)',
+            ].join(', '),
           }}
         >
           THE CHRONICLER
@@ -103,76 +121,62 @@ export default function LandingPage() {
 
         {/* Subtitle */}
         <p
-          className="font-display tracking-[0.3em] mb-6 uppercase"
+          className="font-display tracking-[0.38em] mb-8 uppercase"
           style={{
-            fontSize: 'clamp(0.6rem, 2vw, 0.85rem)',
-            color: 'hsl(18 80% 58%)',
-            textShadow: '0 0 12px hsl(18 90% 52% / 0.5)',
+            fontSize: 'clamp(0.58rem, 1.8vw, 0.82rem)',
+            color: 'hsl(18 80% 60%)',
+            textShadow: '0 0 14px hsl(18 90% 52% / 0.5)',
           }}
         >
-          AI Dungeon Master
+          AI Dungeon Master · D&amp;D 5e
         </p>
 
-        {/* Decorative rune divider */}
-        <div className="flex items-center gap-4 mb-8 w-full max-w-sm">
-          <div className="flex-1 h-px" style={{ background: 'linear-gradient(90deg, transparent, hsl(18 90% 52% / 0.5))' }} />
-          <Flame className="w-5 h-5" style={{ color: 'hsl(18 90% 52%)' }} />
-          <div className="flex-1 h-px" style={{ background: 'linear-gradient(90deg, hsl(18 90% 52% / 0.5), transparent)' }} />
+        {/* ── Ornate divider ── */}
+        <div className="ornate-divider w-full max-w-sm mb-8">
+          <Flame className="w-4 h-4 flex-shrink-0" style={{ color: 'hsl(var(--gold))' }} />
         </div>
 
         {/* Tagline */}
         <p
-          className="font-body italic mb-10 leading-relaxed"
+          className="font-body italic mb-10 leading-loose"
           style={{
-            fontSize: 'clamp(1rem, 2.5vw, 1.2rem)',
-            color: 'hsl(38 28% 72%)',
-            maxWidth: '34ch',
+            fontSize: 'clamp(1rem, 2.6vw, 1.22rem)',
+            color: 'hsl(38 28% 70%)',
+            maxWidth: '32ch',
+            textShadow: '0 1px 3px hsl(246 28% 3% / 0.7)',
           }}
         >
-          Roll your dice. Narrate your actions.<br />
-          Let the story come alive.
+          Cast the dice. Speak your fate.<br />
+          Let the ancient chronicle be written.
         </p>
 
-        {/* CTA Buttons */}
+        {/* ── CTA Buttons ── */}
         <div className="flex flex-col sm:flex-row items-center gap-4 mb-12">
-          <Button
-            size="lg"
+
+          {/* PRIMARY — Begin Adventure (fire button) */}
+          <button
             onClick={() => navigate('/create')}
-            className="font-display tracking-widest px-10 py-6 text-base transition-all duration-200"
-            style={{
-              background: 'linear-gradient(135deg, hsl(18 90% 48%), hsl(0 72% 42%))',
-              color: 'hsl(38 28% 94%)',
-              border: '1px solid hsl(18 90% 55% / 0.6)',
-              boxShadow: '0 0 24px hsl(18 90% 52% / 0.4), 0 4px 16px hsl(20 10% 3% / 0.5)',
-              letterSpacing: '0.15em',
-            }}
+            className="fire-button inline-flex items-center gap-3 px-10 py-4 rounded-md font-display text-base tracking-[0.15em]"
             data-testid="button-new-adventure"
           >
-            <Sword className="w-5 h-5 mr-2" />
+            <Sword className="w-5 h-5 flex-shrink-0" />
             BEGIN ADVENTURE
-          </Button>
+          </button>
 
+          {/* SECONDARY — Continue Journey (ornate gold) */}
           {hasSave && (
-            <Button
-              size="lg"
-              variant="outline"
+            <button
               onClick={() => navigate('/game')}
-              className="font-display tracking-widest px-8 py-6 text-base transition-all duration-200"
-              style={{
-                background: 'transparent',
-                color: 'hsl(38 28% 78%)',
-                border: '1px solid hsl(38 28% 35%)',
-                letterSpacing: '0.15em',
-              }}
+              className="ornate-button inline-flex items-center gap-3 px-8 py-4 rounded-md font-display text-base tracking-[0.14em]"
               data-testid="button-continue"
             >
-              <BookOpen className="w-5 h-5 mr-2" />
+              <BookOpen className="w-5 h-5 flex-shrink-0" />
               CONTINUE JOURNEY
-            </Button>
+            </button>
           )}
         </div>
 
-        {/* Feature pills */}
+        {/* ── Feature pills ── */}
         <div className="flex flex-wrap justify-center gap-3 mb-10">
           {[
             { icon: '🎲', text: 'Physical dice · digital GM' },
@@ -182,11 +186,12 @@ export default function LandingPage() {
           ].map(({ icon, text }) => (
             <span
               key={text}
-              className="flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm font-body"
+              className="flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-body"
               style={{
-                background: 'hsl(22 10% 8% / 0.8)',
-                borderColor: 'hsl(28 12% 22%)',
-                color: 'hsl(38 20% 60%)',
+                background: 'hsl(248 24% 9% / 0.85)',
+                border: '1px solid hsl(var(--gold-dark) / 0.35)',
+                color: 'hsl(38 22% 62%)',
+                boxShadow: 'inset 0 1px 0 hsl(42 30% 15% / 0.4)',
               }}
             >
               <span>{icon}</span>
@@ -195,27 +200,25 @@ export default function LandingPage() {
           ))}
         </div>
 
-        {/* Demo link */}
+        {/* Watch demo */}
         <button
           onClick={() => navigate('/demo')}
-          className="font-display tracking-widest text-xs transition-colors hover:opacity-80"
-          style={{ color: 'hsl(18 70% 48%)', letterSpacing: '0.2em' }}
+          className="font-display tracking-[0.22em] text-xs transition-all hover:opacity-100 opacity-70"
+          style={{ color: 'hsl(42 70% 52%)', letterSpacing: '0.22em', textShadow: '0 0 10px hsl(42 88% 52% / 0.3)' }}
           data-testid="button-watch-demo"
         >
           <Scroll className="inline w-3.5 h-3.5 mr-1.5 -mt-0.5" />
-          WATCH THE DEMO
+          WITNESS THE CHRONICLE
         </button>
       </div>
 
-      {/* Bottom hero label */}
-      <div
-        className="absolute bottom-6 left-0 right-0 flex justify-center pointer-events-none"
-      >
+      {/* ── Bottom caption ── */}
+      <div className="absolute bottom-6 left-0 right-0 flex justify-center pointer-events-none">
         <p
-          className="font-display tracking-widest text-xs"
-          style={{ color: 'hsl(38 12% 30%)', letterSpacing: '0.25em' }}
+          className="font-display tracking-[0.28em] text-xs"
+          style={{ color: 'hsl(246 20% 32%)', letterSpacing: '0.28em' }}
         >
-          HEROES OF THE BORDERLANDS · D&D 5e
+          HEROES OF THE BORDERLANDS · POWERED BY CLAUDE AI
         </p>
       </div>
     </div>

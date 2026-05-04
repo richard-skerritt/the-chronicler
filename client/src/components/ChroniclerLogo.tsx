@@ -1,14 +1,16 @@
 interface Props {
   className?: string;
+  style?: React.CSSProperties;
 }
 
-export default function ChroniclerLogo({ className = 'w-8 h-8' }: Props) {
+export default function ChroniclerLogo({ className = 'w-8 h-8', style }: Props) {
   return (
     <svg
       viewBox="0 0 64 64"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
+      style={style}
       aria-label="The Chronicler"
       role="img"
     >

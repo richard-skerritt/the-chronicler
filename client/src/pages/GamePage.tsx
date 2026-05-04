@@ -163,38 +163,44 @@ The fire crackles. The eastern tunnel breathes cold air that smells of iron and 
   },
 ];
 
-// Render DM response with formatting
-function renderContent(text: string): React.ReactNode {
+// Render DM response with formatting.
+// onParchment=true → dark ink colours for manuscript background
+// onParchment=false (default) → warm light colours for dark background
+function renderContent(text: string, onParchment = false): React.ReactNode {
   const parts = text.split('\n');
   return parts.map((line, i) => {
     if (!line.trim()) return <br key={i} />;
 
-    // Horizontal rule --- or *** or ___
     if (/^(-{3,}|\*{3,}|_{3,})\s*$/.test(line.trim())) {
-      return <hr key={i} className="border-0 border-t border-amber-800/40 my-3" />;
+      return (
+        <hr key={i} className="border-0 my-3"
+          style={{ borderTop: `1px solid ${onParchment ? 'hsl(34 22% 58% / 0.5)' : 'hsl(42 30% 28% / 0.4)'}` }}
+        />
+      );
     }
 
-    // H1 heading
     if (line.startsWith('# ')) {
-      const heading = line.slice(2);
       return (
-        <h3 key={i} className="font-display text-amber-400 text-base tracking-wider uppercase mt-3 mb-1">
-          {heading}
+        <h3 key={i}
+          className="font-display text-base tracking-wider uppercase mt-3 mb-1"
+          style={{ color: onParchment ? 'hsl(30 35% 22%)' : 'hsl(42 88% 62%)' }}
+        >
+          {line.slice(2)}
         </h3>
       );
     }
 
-    // H2 heading
     if (line.startsWith('## ')) {
-      const heading = line.slice(3);
       return (
-        <h4 key={i} className="font-display text-amber-300/80 text-sm tracking-wider uppercase mt-2 mb-1">
-          {heading}
+        <h4 key={i}
+          className="font-display text-sm tracking-wider uppercase mt-2 mb-1"
+          style={{ color: onParchment ? 'hsl(30 28% 28%)' : 'hsl(42 70% 55% / 0.85)' }}
+        >
+          {line.slice(3)}
         </h4>
       );
     }
 
-    // Parse inline formatting
     const formatted = line
       .split(/(\*\*.*?\*\*|\*.*?\*|`.*?`|⚔️.*|💰.*|✨.*|📍.*)/g)
       .map((chunk, j) => {
@@ -202,22 +208,50 @@ function renderContent(text: string): React.ReactNode {
           return <strong key={j}>{chunk.slice(2, -2)}</strong>;
         }
         if (chunk.startsWith('*') && chunk.endsWith('*') && chunk.length > 2) {
-          return <em key={j} className="text-amber-300 italic">{chunk.slice(1, -1)}</em>;
+          return (
+            <em key={j}
+              className="italic"
+              style={{ color: onParchment ? 'hsl(14 80% 38%)' : 'hsl(26 90% 65%)' }}
+            >
+              {chunk.slice(1, -1)}
+            </em>
+          );
         }
         if (chunk.startsWith('`') && chunk.endsWith('`')) {
-          return <code key={j} className="text-purple-300 bg-purple-950/50 px-1 rounded text-sm">{chunk.slice(1, -1)}</code>;
+          return (
+            <code key={j}
+              className="px-1 rounded text-sm"
+              style={{
+                color: onParchment ? 'hsl(260 40% 35%)' : 'hsl(265 52% 75%)',
+                background: onParchment ? 'hsl(260 20% 78% / 0.5)' : 'hsl(265 40% 18% / 0.5)',
+              }}
+            >
+              {chunk.slice(1, -1)}
+            </code>
+          );
         }
-        // Status lines (emoji prefixed)
         if (/^[⚔️💰✨📍🎲🛡️❤️]/.test(chunk)) {
-          return <span key={j} className="text-amber-400/80 font-display text-xs">{chunk}</span>;
+          return (
+            <span key={j}
+              className="font-display text-xs"
+              style={{ color: onParchment ? 'hsl(32 55% 30% / 0.85)' : 'hsl(42 80% 60% / 0.85)' }}
+            >
+              {chunk}
+            </span>
+          );
         }
         return chunk;
       });
 
-    // Status lines get special treatment
     if (/^[⚔️💰✨📍🎲]/.test(line)) {
       return (
-        <p key={i} className="text-amber-400/70 text-xs font-display border-t border-stone-800 pt-1 mt-1">
+        <p key={i}
+          className="text-xs font-display pt-1 mt-1"
+          style={{
+            color: onParchment ? 'hsl(32 50% 32% / 0.75)' : 'hsl(42 70% 55% / 0.75)',
+            borderTop: `1px solid ${onParchment ? 'hsl(34 22% 60%)' : 'hsl(248 22% 20%)'}`,
+          }}
+        >
           {formatted}
         </p>
       );
@@ -560,14 +594,27 @@ export default function GamePage() {
         ))}
       </div>
       {/* ── Top Header ── */}
-      <header className="border-b border-stone-800 bg-card sticky top-0" style={{ zIndex: 50 }}>
+      <header className="header-ornate bg-card sticky top-0" style={{ zIndex: 50 }}>
         <div className="flex items-center justify-between px-4 h-14">
           {/* Logo + Title */}
           <div className="flex items-center gap-3">
-            <ChroniclerLogo className="w-8 h-8 logo-glow" />
+            <ChroniclerLogo
+              className="w-8 h-8 logo-glow torch-flicker"
+              style={{ color: 'hsl(42 88% 64%)' }}
+            />
             <div>
-              <h1 className="font-display text-amber-400 text-base leading-none tracking-widest">THE CHRONICLER</h1>
-              <p className="font-display text-muted-foreground/60 text-xs tracking-[0.2em]">HEROES OF THE BORDERLANDS</p>
+              <h1
+                className="font-display text-base leading-none tracking-widest"
+                style={{
+                  color: 'hsl(44 85% 72%)',
+                  textShadow: '0 0 14px hsl(42 88% 56% / 0.55)',
+                }}
+              >
+                THE CHRONICLER
+              </h1>
+              <p className="font-display text-xs tracking-[0.2em]" style={{ color: 'hsl(42 30% 42%)' }}>
+                HEROES OF THE BORDERLANDS
+              </p>
             </div>
           </div>
 
@@ -628,11 +675,11 @@ export default function GamePage() {
       {/* ── Main Layout ── */}
       <div className="flex flex-1 overflow-hidden" style={{ position: 'relative', zIndex: 2 }}>
         {/* Left Sidebar */}
-        <aside className="w-48 border-r border-stone-800 bg-card/40 hidden lg:flex flex-col">
+        <aside className="w-48 hidden lg:flex flex-col" style={{ borderRight: '1px solid hsl(var(--gold-dark) / 0.2)', background: 'hsl(248 24% 7% / 0.6)' }}>
           <div className="p-3 space-y-4 flex-1 overflow-y-auto">
             {/* Location */}
             <div>
-              <p className="font-display text-amber-500 text-xs tracking-widest mb-2 uppercase">Location</p>
+              <p className="font-display text-xs tracking-widest mb-2 uppercase" style={{ color: 'hsl(var(--gold))' }}>Location</p>
               <p className="text-sm text-foreground leading-snug">{campaign?.currentLocation ?? 'Unknown'}</p>
               {inCombat && (
                 <Badge variant="destructive" className="mt-1 text-xs font-display tracking-wide">
@@ -641,11 +688,11 @@ export default function GamePage() {
               )}
             </div>
 
-            <Separator className="bg-stone-800" />
+            <Separator style={{ background: 'hsl(var(--gold-dark) / 0.2)' }} />
 
             {/* Cave progress mini-view */}
             <div>
-              <p className="font-display text-amber-500 text-xs tracking-widest mb-2 uppercase">Progress</p>
+              <p className="font-display text-xs tracking-widest mb-2 uppercase" style={{ color: 'hsl(var(--gold))' }}>Progress</p>
               <CaveProgress
                 cavesCleared={JSON.parse(campaign?.cavesCleared ?? '[]')}
                 partyLevel={campaign?.partyLevel ?? 1}
@@ -653,11 +700,11 @@ export default function GamePage() {
               />
             </div>
 
-            <Separator className="bg-stone-800" />
+            <Separator style={{ background: 'hsl(var(--gold-dark) / 0.2)' }} />
 
             {/* Session actions */}
             <div className="space-y-1">
-              <p className="font-display text-amber-500 text-xs tracking-widest mb-2 uppercase">Session</p>
+              <p className="font-display text-xs tracking-widest mb-2 uppercase" style={{ color: 'hsl(var(--gold))' }}>Session</p>
               <Button
                 variant="ghost"
                 size="sm"
@@ -690,10 +737,15 @@ export default function GamePage() {
           </div>
 
           {/* Party Level */}
-          <div className="p-3 border-t border-stone-800">
+          <div className="p-3" style={{ borderTop: '1px solid hsl(var(--gold-dark) / 0.2)' }}>
             <div className="text-center">
-              <p className="font-display text-muted-foreground text-xs tracking-widest">PARTY LEVEL</p>
-              <p className="font-display text-amber-400 text-2xl">{campaign?.partyLevel ?? 1}</p>
+              <p className="font-display text-xs tracking-widest" style={{ color: 'hsl(var(--muted-foreground))' }}>PARTY LEVEL</p>
+              <p
+                className="font-display text-2xl"
+                style={{ color: 'hsl(var(--gold))', textShadow: '0 0 12px hsl(var(--gold) / 0.4)' }}
+              >
+                {campaign?.partyLevel ?? 1}
+              </p>
             </div>
           </div>
         </aside>
@@ -705,7 +757,16 @@ export default function GamePage() {
               {/* Welcome state (no messages, not in demo) */}
               {!isDemoMode && messages.length === 0 && !streamingText && (
                 <div className="text-center py-12 space-y-4">
-                  <ChroniclerLogo className="w-20 h-20 mx-auto torch-flicker" style={{ filter: 'drop-shadow(0 0 18px hsl(18 90% 52% / 0.7))' }} />
+                  <ChroniclerLogo
+                    className="w-20 h-20 mx-auto torch-flicker"
+                    style={{
+                      color: 'hsl(42 88% 64%)',
+                      filter: [
+                        'drop-shadow(0 0 16px hsl(42 88% 56% / 0.75))',
+                        'drop-shadow(0 0 32px hsl(18 90% 52% / 0.4))',
+                      ].join(' '),
+                    }}
+                  />
                   <div className="space-y-2">
                     <h2 className="font-display text-xl tracking-wider" style={{ color: 'hsl(18 80% 58%)' }}>The Chronicle Awaits</h2>
                     <p className="font-serif text-sm max-w-md mx-auto leading-relaxed" style={{ color: 'hsl(38 16% 52%)' }}>
@@ -718,19 +779,18 @@ export default function GamePage() {
                   <div>
                     <button
                       onClick={startDemo}
-                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg font-display text-sm tracking-wide transition-all duration-200"
-                      style={{
-                        background: 'linear-gradient(135deg, hsl(18 90% 46%), hsl(0 72% 40%))',
-                        color: 'hsl(38 28% 94%)',
-                        border: '1px solid hsl(18 90% 55% / 0.5)',
-                        boxShadow: '0 0 18px hsl(18 90% 52% / 0.3)',
-                      }}
+                      className="fire-button inline-flex items-center gap-2 px-6 py-2.5 rounded-md font-display text-sm tracking-wide"
                       data-testid="button-start-demo"
                     >
                       <Scroll className="h-4 w-4" />
                       Witness the Chronicle
                     </button>
-                    <p className="font-display text-xs tracking-wide mt-2" style={{ color: 'hsl(38 12% 40%)' }}>A scripted tale — full narration, no key required</p>
+                    <p
+                      className="font-display text-xs tracking-wide mt-2"
+                      style={{ color: 'hsl(42 15% 38%)', letterSpacing: '0.1em' }}
+                    >
+                      A scripted tale — full narration, no key required
+                    </p>
                   </div>
                   <div className="flex flex-wrap gap-2 justify-center pt-1">
                     {[
@@ -742,8 +802,12 @@ export default function GamePage() {
                       <button
                         key={suggestion}
                         onClick={() => { setInput(suggestion); inputRef.current?.focus(); }}
-                        className="font-display text-xs tracking-wide px-3 py-1.5 rounded-full border transition-colors"
-                        style={{ borderColor: 'hsl(28 12% 22%)', color: 'hsl(38 14% 46%)' }}
+                        className="font-display text-xs tracking-wide px-3 py-1.5 rounded-full transition-all"
+                        style={{
+                          border: '1px solid hsl(var(--gold-dark) / 0.3)',
+                          color: 'hsl(42 20% 46%)',
+                          background: 'hsl(248 22% 9% / 0.6)',
+                        }}
                         data-testid={`button-suggestion-${suggestion.substring(0, 10)}`}
                       >
                         {suggestion}
@@ -777,20 +841,27 @@ export default function GamePage() {
                     msg.role === 'player' ? (
                       <div key={idx} className="flex justify-end message-enter">
                         <div className="max-w-xs lg:max-w-md">
-                          <div className="bg-stone-800/70 rounded-lg px-4 py-2.5 text-sm font-display tracking-wide text-foreground/80">
+                          <div className="player-bubble rounded-lg px-4 py-2.5 text-sm font-display tracking-wide" style={{ color: 'hsl(40 22% 70%)' }}>
                             {msg.content}
                           </div>
-                          <p className="font-display text-xs tracking-widest text-muted-foreground/40 text-right mt-1">— THE ADVENTURER</p>
+                          <p className="font-display text-xs tracking-widest text-right mt-1" style={{ color: 'hsl(42 18% 34%)' }}>— THE ADVENTURER</p>
                         </div>
                       </div>
                     ) : (
                       <div key={idx} className="flex items-start gap-3 message-enter">
-                        <div className="w-7 h-7 rounded-full bg-amber-900/50 border border-amber-700/50 flex items-center justify-center flex-shrink-0 mt-0.5">
-                          <Scroll className="h-3.5 w-3.5 text-amber-500" />
+                        <div
+                          className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
+                          style={{
+                            background: 'linear-gradient(160deg, hsl(38 55% 28%), hsl(36 48% 20%))',
+                            border: '1px solid hsl(var(--gold-dark) / 0.6)',
+                            boxShadow: '0 0 8px hsl(var(--gold) / 0.2)',
+                          }}
+                        >
+                          <Scroll className="h-3.5 w-3.5" style={{ color: 'hsl(var(--gold))' }} />
                         </div>
-                        <div className="flex-1 stone-panel rounded-lg p-4 dm-content chronicle-prose">
-                          <div className="narration">
-                            {renderContent(msg.content)}
+                        <div className="flex-1 manuscript-entry rounded-lg p-4 pl-6 dm-content relative">
+                          <div className="manuscript-prose">
+                            {renderContent(msg.content, true)}
                           </div>
                         </div>
                       </div>
@@ -803,21 +874,21 @@ export default function GamePage() {
                       {demoStep < DEMO_STEPS.length ? (
                         <button
                           onClick={advanceDemo}
-                          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-stone-900 font-display text-sm tracking-wide transition-colors"
+                          className="ornate-button inline-flex items-center gap-2 px-6 py-2.5 rounded-md font-display text-sm tracking-wide"
                           data-testid="button-demo-next"
                         >
-                          Continue →
+                          Continue the Tale →
                         </button>
                       ) : (
                         <div className="space-y-3">
-                          <p className="text-muted-foreground text-sm">The demo is complete.</p>
+                          <p className="text-sm" style={{ color: 'hsl(var(--muted-foreground))' }}>The scripted chronicle is complete.</p>
                           <button
                             onClick={exitDemo}
-                            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-stone-900 font-display text-sm tracking-wide transition-colors glow-gold"
+                            className="ornate-button inline-flex items-center gap-2 px-6 py-2.5 rounded-md font-display text-sm tracking-wide"
                             data-testid="button-demo-start-adventure"
                           >
                             <Scroll className="h-4 w-4" />
-                            Start Your Own Adventure
+                            Begin Your Own Adventure
                           </button>
                         </div>
                       )}
@@ -840,14 +911,24 @@ export default function GamePage() {
               {streamingText && (
                 <div className="message-enter">
                   <div className="flex items-start gap-3">
-                    <div className="w-7 h-7 rounded-full bg-amber-900/50 border border-amber-700/50 flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <Scroll className="h-3.5 w-3.5 text-amber-500" />
+                    <div
+                      className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
+                      style={{
+                        background: 'linear-gradient(160deg, hsl(38 55% 28%), hsl(36 48% 20%))',
+                        border: '1px solid hsl(var(--gold-dark) / 0.6)',
+                        boxShadow: '0 0 8px hsl(var(--gold) / 0.2)',
+                      }}
+                    >
+                      <Scroll className="h-3.5 w-3.5" style={{ color: 'hsl(var(--gold))' }} />
                     </div>
-                    <div className="flex-1 stone-panel rounded-lg p-4 dm-content chronicle-prose">
-                      <div className="narration">
-                        {renderContent(streamingText)}
+                    <div className="flex-1 manuscript-entry rounded-lg p-4 pl-6 dm-content relative">
+                      <div className="manuscript-prose">
+                        {renderContent(streamingText, true)}
+                        <span
+                          className="inline-block w-0.5 h-4 animate-pulse ml-0.5 rounded-full"
+                          style={{ background: 'hsl(var(--fire))' }}
+                        />
                       </div>
-                      <span className="inline-block w-0.5 h-4 bg-amber-500 animate-pulse ml-0.5" />
                     </div>
                   </div>
                 </div>
@@ -858,7 +939,7 @@ export default function GamePage() {
           </ScrollArea>
 
           {/* ── Input Bar ── */}
-          <div className="border-t border-stone-800 bg-card p-3">
+          <div className="p-3 bg-card" style={{ borderTop: '1px solid hsl(var(--gold-dark) / 0.25)', boxShadow: '0 -1px 0 hsl(var(--gold) / 0.06)' }}>
             <div className="max-w-2xl mx-auto">
               <div className="flex gap-2 items-end">
                 <div className="flex-1 relative">
@@ -868,21 +949,20 @@ export default function GamePage() {
                     onChange={e => setInput(e.target.value)}
                     onKeyDown={handleKeyDown}
                     placeholder="Speak your action into the chronicle... (Enter to send)"
-                    className="resize-none bg-input border-stone-700 focus:border-amber-600 text-sm min-h-[44px] max-h-32 pr-2 font-body placeholder:text-muted-foreground/50"
+                    className="chronicle-input resize-none text-sm min-h-[44px] max-h-32 pr-2 font-body rounded-md"
                     rows={1}
                     disabled={isStreaming}
                     data-testid="input-player-action"
                   />
                 </div>
-                <Button
+                <button
                   onClick={() => { touchAudioContext(); sendMessage(); }}
                   disabled={!input.trim() || isStreaming}
-                  className="bg-amber-600 hover:bg-amber-500 text-stone-900 h-11 w-11 flex-shrink-0 font-display glow-gold"
-                  size="icon"
+                  className="ornate-button h-11 w-11 flex-shrink-0 flex items-center justify-center rounded-md"
                   data-testid="button-send"
                 >
                   <Send className="h-4 w-4" />
-                </Button>
+                </button>
               </div>
               {/* Pending audio nudge */}
               {pendingAudio && (
@@ -897,7 +977,10 @@ export default function GamePage() {
                 </button>
               )}
               {!pendingAudio && (
-                <p className="font-display text-xs tracking-wide text-muted-foreground/40 mt-1.5 text-center">
+                <p
+                  className="font-display text-xs tracking-wide mt-1.5 text-center"
+                  style={{ color: 'hsl(42 20% 35%)', letterSpacing: '0.12em' }}
+                >
                   Roll thy dice. Speak thy fate. Let the chronicle be written.
                 </p>
               )}
@@ -906,9 +989,9 @@ export default function GamePage() {
         </main>
 
         {/* ── Right Panel ── */}
-        <aside className="w-56 border-l border-stone-800 bg-card/40 hidden xl:flex flex-col">
+        <aside className="w-56 hidden xl:flex flex-col" style={{ borderLeft: '1px solid hsl(var(--gold-dark) / 0.2)', background: 'hsl(248 24% 7% / 0.6)' }}>
           {/* Panel tabs */}
-          <div className="flex border-b border-stone-800">
+          <div className="flex" style={{ borderBottom: '1px solid hsl(var(--gold-dark) / 0.2)' }}>
             {([
               { id: 'caves',  label: 'Caves'  },
               { id: 'combat', label: 'Combat' },
@@ -975,13 +1058,18 @@ function MessageBubble({
     return (
       <div className="flex items-start gap-3 justify-end message-enter">
         <div className="flex-1 max-w-sm">
-          <div className="rounded-lg px-4 py-3 ml-8" style={{ background: 'hsl(20 14% 12% / 0.8)', border: '1px solid hsl(28 12% 20%)' }}>
-            <p className="font-display tracking-wide text-sm" style={{ color: 'hsl(38 22% 72%)' }}>{message.content}</p>
+          <div className="player-bubble rounded-lg px-4 py-3 ml-8">
+            <p className="font-display tracking-wide text-sm" style={{ color: 'hsl(40 22% 70%)' }}>{message.content}</p>
           </div>
-          <p className="font-display text-xs tracking-widest mt-1 pr-1 text-right" style={{ color: 'hsl(38 12% 36%)' }}>— THE ADVENTURER</p>
+          <p className="font-display text-xs tracking-widest mt-1 pr-1 text-right" style={{ color: 'hsl(42 18% 34%)' }}>
+            — THE ADVENTURER
+          </p>
         </div>
-        <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: 'hsl(20 14% 14%)', border: '1px solid hsl(28 12% 22%)' }}>
-          <span className="text-xs" style={{ color: 'hsl(38 22% 50%)' }}>⚔</span>
+        <div
+          className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
+          style={{ background: 'hsl(248 24% 13%)', border: '1px solid hsl(var(--gold-dark) / 0.3)' }}
+        >
+          <span className="text-xs" style={{ color: 'hsl(var(--gold) / 0.7)' }}>⚔</span>
         </div>
       </div>
     );
@@ -990,18 +1078,29 @@ function MessageBubble({
   return (
     <div className="message-enter group">
       <div className="flex items-start gap-3">
-        <div className="w-7 h-7 rounded-full bg-amber-900/50 border border-amber-700/50 flex items-center justify-center flex-shrink-0 mt-1">
-          <Scroll className="h-3.5 w-3.5 text-amber-500" />
+        {/* DM icon — gilt scroll */}
+        <div
+          className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mt-1 flex-shrink-0"
+          style={{
+            background: 'linear-gradient(160deg, hsl(38 55% 28%), hsl(36 48% 20%))',
+            border: '1px solid hsl(var(--gold-dark) / 0.6)',
+            boxShadow: '0 0 8px hsl(var(--gold) / 0.2)',
+          }}
+        >
+          <Scroll className="h-3.5 w-3.5" style={{ color: 'hsl(var(--gold))' }} />
         </div>
-        <div className="flex-1 stone-panel rounded-lg p-4 dm-content chronicle-prose">
-          <div className="narration">
-            {renderContent(message.content)}
+
+        {/* Parchment manuscript panel */}
+        <div className="flex-1 manuscript-entry rounded-lg p-4 pl-6 dm-content relative">
+          <div className="manuscript-prose">
+            {renderContent(message.content, true)}
           </div>
 
-          {/* Speak button (appears on hover) */}
+          {/* Speak button — visible on hover */}
           <button
             onClick={() => onSpeak(message.content)}
-            className="mt-2 opacity-0 group-hover:opacity-100 transition-opacity font-display text-xs tracking-wide text-muted-foreground hover:text-amber-400 flex items-center gap-1"
+            className="mt-2 opacity-0 group-hover:opacity-70 hover:!opacity-100 transition-opacity font-display text-xs tracking-wide flex items-center gap-1"
+            style={{ color: 'hsl(32 45% 32%)' }}
             data-testid={`button-speak-${message.id}`}
           >
             <Volume2 className="h-3 w-3" />

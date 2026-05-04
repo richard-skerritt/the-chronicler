@@ -54,14 +54,14 @@ export const campaigns = sqliteTable('campaigns', {
 
   // Combat
   inCombat: integer('in_combat', { mode: 'boolean' }).notNull().default(false),
-  combatState: text('combat_state').default(null),
+  combatState: text('combat_state'),
 
   // Session notes
   sessionNotes: text('session_notes').default(''),
 
   // Custom characters — JSON CharacterData (null = not set)
-  char1: text('char1').default(null),
-  char2: text('char2').default(null),
+  char1: text('char1'),
+  char2: text('char2'),
 
   // 'heroes' = Gideon & Zella (default) | 'custom' = player-created characters
   gameMode: text('game_mode').notNull().default('heroes'),

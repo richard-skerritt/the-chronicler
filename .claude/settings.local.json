@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -E \"\\\\.\\(tsx|ts\\)$\")",
+      "Bash(grep -v \"^ui$\")",
+      "Bash(npm install *)",
+      "PowerShell(cmd /c \"dir /b \"\"C:\\\\Users\\\\PC\\\\Documents\\\\Claude\\\\Projects\\\\Chronicler Dev\\\\node_modules\\\\better-sqlite3\"\"\")",
+      "PowerShell($path = \"C:\\\\Users\\\\PC\\\\Documents\\\\Claude\\\\Projects\\\\Chronicler Dev\\\\node_modules\\\\better-sqlite3\"; [System.IO.Directory]::GetFiles\\($path\\) | ForEach-Object { $_.Split\\('\\\\'\\)[-1] })",
+      "PowerShell($path = \"C:\\\\Users\\\\PC\\\\Documents\\\\Claude\\\\Projects\\\\Chronicler Dev\\\\node_modules\\\\better-sqlite3\"; [System.IO.Directory]::Exists\\($path\\); [System.IO.Directory]::GetFileSystemEntries\\($path\\).Count)",
+      "PowerShell(cd \"C:\\\\Users\\\\PC\\\\Documents\\\\Claude\\\\Projects\\\\Chronicler Dev\"; [System.IO.Directory]::GetFileSystemEntries\\(\"node_modules\\\\better-sqlite3\"\\).Count; [System.IO.Directory]::GetFileSystemEntries\\(\"node_modules\\\\better-sqlite3\\\\prebuilds\"\\).Count 2>&1)",
+      "PowerShell(node -e \"console.log\\('ABI:', process.versions.modules, 'Node:', process.version\\)\")",
+      "PowerShell(npm view *)"
+    ]
+  }
+}
