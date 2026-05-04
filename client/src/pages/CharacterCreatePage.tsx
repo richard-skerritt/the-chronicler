@@ -730,8 +730,7 @@ export default function CharacterCreatePage() {
 
   return (
     <div
-      className="min-h-screen stone-texture"
-      style={{ background: 'hsl(20 10% 5%)' }}
+      className="min-h-screen page-overlay"
       data-testid="character-create-page"
     >
       {/* Ambient top gradient */}

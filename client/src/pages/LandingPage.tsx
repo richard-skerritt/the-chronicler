@@ -40,7 +40,7 @@ export default function LandingPage() {
   return (
     <div
       ref={containerRef}
-      className="landing-bg min-h-screen w-full flex flex-col items-center justify-center relative overflow-hidden select-none"
+      className="page-overlay min-h-screen w-full flex flex-col items-center justify-center relative overflow-hidden select-none"
       data-testid="landing-page"
     >
       {/* ── Ember particles ── */}

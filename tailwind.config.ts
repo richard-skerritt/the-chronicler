@@ -59,6 +59,15 @@ export default {
         ember: "hsl(22 96% 58%)",
         forest: "hsl(148 35% 14%)",
         crimson: "hsl(0 72% 45%)",
+        // ── Chronicle design tokens ───────────────────────────────────
+        "chronicle-black":    "#04020e",
+        "chronicle-dark":     "#0a0814",
+        "chronicle-purple":   "#1a0f2e",
+        "chronicle-ember":    "hsl(22 96% 58%)",
+        "chronicle-red":      "hsl(0 72% 45%)",
+        "chronicle-gold":     "hsl(42 88% 56%)",
+        "chronicle-parchment":"hsl(40 42% 88%)",
+        "chronicle-cream":    "hsl(38 34% 92%)",
         chart: {
           "1": "hsl(var(--chart-1) / <alpha-value>)",
           "2": "hsl(var(--chart-2) / <alpha-value>)",
@@ -90,11 +99,12 @@ export default {
         },
       },
       fontFamily: {
-        sans:  ["var(--font-sans)"],
-        serif: ["var(--font-serif)"],
-        mono:  ["var(--font-mono)"],
-        display: ["'Cinzel'", "'Times New Roman'", "serif"],
+        sans:    ["var(--font-sans)"],
+        serif:   ["var(--font-serif)"],
+        mono:    ["var(--font-mono)"],
+        display: ["'Cinzel Decorative'", "'Cinzel'", "'Times New Roman'", "serif"],
         body:    ["'Lora'", "'Georgia'", "serif"],
+        cinzel:  ["'Cinzel'", "'Times New Roman'", "serif"],
       },
       keyframes: {
         "accordion-down": {

@@ -92,14 +92,25 @@
 @layer base {
   * { @apply border-border; }
   body {
-    @apply bg-background text-foreground;
-    font-family: 'Lora', 'Georgia', serif;
+    @apply text-foreground;
+    /* Dragon background — fixed so it stays put while content scrolls */
+    background-color: hsl(246 28% 5%);
+    background-image: url('/crimson_dragon_battle.png');
+    background-size: cover;
+    background-position: center top;
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+    min-height: 100vh;
+    font-family: 'Cinzel', 'Times New Roman', serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Cinzel', 'Times New Roman', serif;
-    letter-spacing: 0.02em;
+    font-family: 'Cinzel Decorative', 'Cinzel', 'Times New Roman', serif;
+    letter-spacing: 0.04em;
+  }
+  button, .btn {
+    font-family: 'Cinzel Decorative', 'Cinzel', 'Times New Roman', serif;
   }
   ::-webkit-scrollbar { width: 6px; height: 6px; }
   ::-webkit-scrollbar-track { background: hsl(var(--muted)); }
@@ -110,7 +121,12 @@
 /* ── Custom utilities ─────────────────────────────────────────── */
 @layer components {
 
-  .font-display { font-family: 'Cinzel', 'Times New Roman', serif; letter-spacing: 0.04em; }
+  /* ── Page overlay — dark semi-transparent veil over dragon background ── */
+  .page-overlay {
+    background: rgba(5, 3, 15, 0.72);
+  }
+
+  .font-display { font-family: 'Cinzel Decorative', 'Cinzel', 'Times New Roman', serif; letter-spacing: 0.04em; }
   .font-body    { font-family: 'Lora', 'Georgia', serif; }
 
   .narration { @apply leading-relaxed; font-family: 'Lora', 'Georgia', serif; }
@@ -130,10 +146,12 @@
     box-shadow: 0 0 22px hsl(var(--gold) / 0.55), 0 0 56px hsl(var(--gold) / 0.22);
   }
 
-  /* ── Stone panel (dark cards) ── */
+  /* ── Stone panel (dark glass cards) ── */
   .stone-panel {
-    background: hsl(var(--card));
-    border: 1px solid hsl(var(--stone-border));
+    background: rgba(10, 8, 20, 0.82);
+    border: 1px solid hsl(var(--gold-dark) / 0.35);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
   }
 
   /* ── Manuscript entry — illuminated tome parchment ── */
@@ -451,16 +469,18 @@
   /* ── Character creation cards ── */
   .choice-card {
     @apply relative cursor-pointer rounded-lg p-4 transition-all duration-200;
-    border: 2px solid hsl(248 22% 20%);
-    background: hsl(248 22% 10% / 0.7);
+    border: 1px solid hsl(var(--gold-dark) / 0.25);
+    background: rgba(10, 8, 20, 0.75);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
   }
   .choice-card:hover {
     border-color: hsl(var(--gold) / 0.5);
-    background: hsl(42 30% 10% / 0.4);
+    background: rgba(20, 12, 8, 0.80);
   }
   .choice-card.selected {
     border-color: hsl(var(--gold));
-    background: hsl(42 30% 10% / 0.6);
+    background: rgba(24, 16, 4, 0.85);
     box-shadow: 0 0 20px hsl(var(--gold) / 0.2), inset 0 0 10px hsl(var(--gold) / 0.06);
   }
 

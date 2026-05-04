@@ -520,7 +520,7 @@ export default function GamePage() {
 
   if (campaignLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center stone-texture">
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'rgba(5,3,15,0.78)' }}>
         <div className="text-center space-y-4">
           <ChroniclerLogo className="w-16 h-16 mx-auto logo-glow torch-flicker" />
           <p className="font-display text-amber-400 tracking-widest text-sm animate-pulse">OPENING THE TOME...</p>
@@ -532,7 +532,7 @@ export default function GamePage() {
   const inCombat = campaign?.inCombat ?? false;
 
   return (
-    <div className="min-h-screen bg-background flex flex-col stone-texture relative overflow-hidden">
+    <div className="min-h-screen flex flex-col page-overlay relative overflow-hidden">
 
       {/* ── Parallax layer 1: stone noise texture ── */}
       <div
@@ -594,7 +594,7 @@ export default function GamePage() {
         ))}
       </div>
       {/* ── Top Header ── */}
-      <header className="header-ornate bg-card sticky top-0" style={{ zIndex: 50 }}>
+      <header className="header-ornate sticky top-0" style={{ zIndex: 50, background: 'rgba(8,5,20,0.90)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', borderBottom: '1px solid hsl(var(--gold-dark) / 0.4)' }}>
         <div className="flex items-center justify-between px-4 h-14">
           {/* Logo + Title */}
           <div className="flex items-center gap-3">
@@ -675,7 +675,7 @@ export default function GamePage() {
       {/* ── Main Layout ── */}
       <div className="flex flex-1 overflow-hidden" style={{ position: 'relative', zIndex: 2 }}>
         {/* Left Sidebar */}
-        <aside className="w-48 hidden lg:flex flex-col" style={{ borderRight: '1px solid hsl(var(--gold-dark) / 0.2)', background: 'hsl(248 24% 7% / 0.6)' }}>
+        <aside className="w-48 hidden lg:flex flex-col" style={{ borderRight: '1px solid hsl(var(--gold-dark) / 0.35)', background: 'rgba(10,8,20,0.82)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)' }}>
           <div className="p-3 space-y-4 flex-1 overflow-y-auto">
             {/* Location */}
             <div>
@@ -939,7 +939,7 @@ export default function GamePage() {
           </ScrollArea>
 
           {/* ── Input Bar ── */}
-          <div className="p-3 bg-card" style={{ borderTop: '1px solid hsl(var(--gold-dark) / 0.25)', boxShadow: '0 -1px 0 hsl(var(--gold) / 0.06)' }}>
+          <div className="p-3" style={{ borderTop: '1px solid hsl(var(--gold-dark) / 0.4)', background: 'rgba(8,5,20,0.90)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', boxShadow: '0 -1px 0 hsl(var(--gold) / 0.10)' }}>
             <div className="max-w-2xl mx-auto">
               <div className="flex gap-2 items-end">
                 <div className="flex-1 relative">
@@ -989,7 +989,7 @@ export default function GamePage() {
         </main>
 
         {/* ── Right Panel ── */}
-        <aside className="w-56 hidden xl:flex flex-col" style={{ borderLeft: '1px solid hsl(var(--gold-dark) / 0.2)', background: 'hsl(248 24% 7% / 0.6)' }}>
+        <aside className="w-56 hidden xl:flex flex-col" style={{ borderLeft: '1px solid hsl(var(--gold-dark) / 0.35)', background: 'rgba(10,8,20,0.82)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)' }}>
           {/* Panel tabs */}
           <div className="flex" style={{ borderBottom: '1px solid hsl(var(--gold-dark) / 0.2)' }}>
             {([
