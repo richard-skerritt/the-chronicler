@@ -446,6 +446,28 @@
     100% { transform: translateY(-115vh)  translateX(var(--drift2, -10px))       scale(0.10); opacity: 0;   }
   }
 
+  /* ── Scroll ember spots ── */
+  @keyframes emberPulse {
+    0%   { opacity: 0;    transform: scale(0.6); }
+    25%  { opacity: 0.9;  transform: scale(1.2); }
+    55%  { opacity: 0.65; transform: scale(0.9); }
+    80%  { opacity: 1;    transform: scale(1.3); }
+    100% { opacity: 0;    transform: scale(0.5); }
+  }
+  .ember-spot {
+    animation: emberPulse 2.4s ease-in-out infinite;
+  }
+
+  /* ── Scroll bottom fire glow ── */
+  @keyframes bottomGlow {
+    0%   { opacity: 0.4; transform: scaleX(0.85); }
+    50%  { opacity: 0.9; transform: scaleX(1.1);  }
+    100% { opacity: 0.4; transform: scaleX(0.85); }
+  }
+  .scroll-bottom-glow {
+    animation: bottomGlow 2.8s ease-in-out infinite;
+  }
+
   /* ── Ornate section divider ── */
   .ornate-divider {
     display: flex;
@@ -469,19 +491,19 @@
   /* ── Character creation cards ── */
   .choice-card {
     @apply relative cursor-pointer rounded-lg p-4 transition-all duration-200;
-    border: 1px solid hsl(var(--gold-dark) / 0.25);
-    background: rgba(10, 8, 20, 0.75);
+    border: 1px solid rgba(201,168,76,0.4);
+    background: transparent;
     backdrop-filter: blur(4px);
     -webkit-backdrop-filter: blur(4px);
   }
   .choice-card:hover {
-    border-color: hsl(var(--gold) / 0.5);
-    background: rgba(20, 12, 8, 0.80);
+    border-color: rgba(201,168,76,0.65);
+    box-shadow: 0 0 20px rgba(201,168,76,0.3);
   }
   .choice-card.selected {
     border-color: hsl(var(--gold));
-    background: rgba(24, 16, 4, 0.85);
-    box-shadow: 0 0 20px hsl(var(--gold) / 0.2), inset 0 0 10px hsl(var(--gold) / 0.06);
+    background: rgba(24, 16, 4, 0.50);
+    box-shadow: 0 0 20px hsl(var(--gold) / 0.3), inset 0 0 10px hsl(var(--gold) / 0.08);
   }
 
   /* ── Ability stat box ── */

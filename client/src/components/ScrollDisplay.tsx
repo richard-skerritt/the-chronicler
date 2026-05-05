@@ -9,110 +9,122 @@ export interface ScrollMessage {
   content: string;
 }
 
-// ── Parchment constants ────────────────────────────────────────────────────────
+// ── Parchment gradient — darker charred edges, warm aged centre ────────────────
 const PARCHMENT_BG = `
-  radial-gradient(ellipse at 30% 20%, rgba(255,248,220,0.4) 0%, transparent 60%),
-  radial-gradient(ellipse at 70% 80%, rgba(210,180,140,0.3) 0%, transparent 50%),
   linear-gradient(
     180deg,
-    #d4a96a 0%,
-    #e8c98a 8%,
-    #f4e4c1 15%,
-    #f0dba8 40%,
-    #ecdba0 60%,
-    #e8d090 85%,
-    #d4a96a 100%
+    #8b5a2b 0%,
+    #b8824a 4%,
+    #c4956a 9%,
+    #d4a96a 16%,
+    #e8c98a 28%,
+    #f4e4c1 42%,
+    #f0dba8 55%,
+    #e8d090 68%,
+    #d4a96a 80%,
+    #c4956a 88%,
+    #b8824a 93%,
+    #8b5a2b 100%
   )
 `;
 
-const PARCHMENT_SHADOW = `
-  inset 8px 0 20px rgba(100,60,10,0.3),
-  inset -8px 0 20px rgba(100,60,10,0.3),
-  inset 0 15px 30px rgba(80,40,5,0.4),
-  inset 0 -15px 30px rgba(80,40,5,0.4)
-`;
-
-// Torn edges — 21 points per side at 5% y-intervals, x varies 3–8 px
-const TORN_CLIP = `polygon(
-  7px 0%,  4px 5%,  6px 10%, 3px 15%, 8px 20%, 5px 25%, 7px 30%, 3px 35%,
-  6px 40%, 4px 45%, 8px 50%, 5px 55%, 7px 60%, 3px 65%, 6px 70%, 4px 75%,
-  8px 80%, 5px 85%, 7px 90%, 3px 95%, 6px 100%,
-  calc(100% - 6px) 100%, calc(100% - 3px) 95%, calc(100% - 7px) 90%,
-  calc(100% - 5px) 85%, calc(100% - 8px) 80%, calc(100% - 4px) 75%,
-  calc(100% - 6px) 70%, calc(100% - 3px) 65%, calc(100% - 7px) 60%,
-  calc(100% - 5px) 55%, calc(100% - 8px) 50%, calc(100% - 4px) 45%,
-  calc(100% - 6px) 40%, calc(100% - 3px) 35%, calc(100% - 7px) 30%,
-  calc(100% - 5px) 25%, calc(100% - 8px) 20%, calc(100% - 3px) 15%,
-  calc(100% - 6px) 10%, calc(100% - 4px) 5%,  calc(100% - 7px) 0%
+// ── Burned clip-path: top edge charred, bottom in flame silhouette ─────────────
+// Top corners burned deep (left 30px, right 20px); midpoints vary 10–25px
+// Sides have irregular notches; bottom flames 40–60px variation
+const SCROLL_CLIP = `polygon(
+  30px 0%,
+  8% 12px, 16% 10px, 24% 18px, 32% 8px, 40% 15px, 48% 11px,
+  56% 20px, 64% 9px,  72% 16px, 80% 12px, 88% 18px,
+  calc(100% - 20px) 0%,
+  calc(100% - 4px) 8%,
+  calc(100% - 6px) 20%,
+  calc(100% - 3px) 30%,
+  calc(100% - 18px) 35%, calc(100% - 3px) 38%,
+  calc(100% - 5px) 50%,
+  calc(100% - 4px) 58%,
+  calc(100% - 20px) 60%, calc(100% - 4px) 63%,
+  calc(100% - 6px) 75%,
+  calc(100% - 3px) 85%,
+  calc(100% - 5px) 90%,
+  calc(100% - 3px) 94%,
+  calc(100% - 8px) 96%,
+  calc(100% - 20px) 97%,
+  calc(100% - 38px) 98.5%,
+  calc(100% - 55px) 97.5%,
+  calc(100% - 62px) 100%,
+  calc(100% - 72px) 96%,
+  calc(100% - 85px) 98%,
+  calc(100% - 95px) 94%,
+  calc(100% - 108px) 99%,
+  calc(100% - 118px) 95%,
+  calc(100% - 130px) 100%,
+  calc(100% - 145px) 96%,
+  calc(100% - 158px) 99%,
+  calc(100% - 172px) 93%,
+  calc(100% - 188px) 97%,
+  calc(100% - 200px) 100%,
+  calc(100% - 215px) 94%,
+  calc(100% - 228px) 98%,
+  calc(100% - 244px) 96%,
+  calc(100% - 255px) 100%,
+  calc(100% - 268px) 95%,
+  calc(100% - 280px) 99%,
+  55px 98%,
+  42px 100%,
+  28px 96%,
+  14px 99%,
+  5px 94%,
+  3px 85%,
+  6px 75%,
+  3px 63%,
+  18px 60%, 3px 58%,
+  5px 50%,
+  3px 38%,
+  18px 35%, 4px 30%,
+  6px 20%,
+  4px 8%
 )`;
 
-// ── Wooden Roller ──────────────────────────────────────────────────────────────
-function WoodenRoller({ position }: { position: 'top' | 'bottom' }) {
-  const dropShadow = position === 'top'
-    ? '0 8px 20px rgba(0,0,0,0.8), 0 3px 6px rgba(0,0,0,0.5)'
-    : '0 -6px 20px rgba(0,0,0,0.7), 0 4px 8px rgba(0,0,0,0.4)';
+// ── Ember spot component ───────────────────────────────────────────────────────
+interface EmberProps {
+  top: string;
+  left: string;
+  size: number;
+  delay: number;
+  color: string;
+}
 
+function EmberSpot({ top, left, size, delay, color }: EmberProps) {
   return (
     <div
-      aria-hidden
+      className="ember-spot"
       style={{
-        position: 'relative',
-        height: 40,
-        marginLeft: -15,
-        marginRight: -15,
-        zIndex: 2,
-        display: 'flex',
-        alignItems: 'stretch',
-        borderRadius: 5,
-        overflow: 'hidden',
+        position: 'absolute',
+        top,
+        left,
+        width: size,
+        height: size,
+        borderRadius: '50%',
+        background: color,
+        animationDelay: `${delay}s`,
+        pointerEvents: 'none',
       }}
-    >
-      {/* Left end cap — darker ellipse for depth */}
-      <div
-        style={{
-          flexShrink: 0,
-          width: 22,
-          background: 'radial-gradient(ellipse at 62% 50%, #6b3010 0%, #3a1508 45%, #180700 100%)',
-          borderRadius: '5px 0 0 5px',
-        }}
-      />
-
-      {/* Main cylinder — linear gradient mimics 3-D barrel */}
-      <div
-        style={{
-          flex: 1,
-          background: `linear-gradient(
-            180deg,
-            #0e0400 0%,
-            #2c1505 7%,
-            #5a2a0e 20%,
-            #8B4513 36%,
-            #b8682a 45%,
-            #cd853f 50%,
-            #b8682a 55%,
-            #8B4513 64%,
-            #5a2a0e 80%,
-            #2c1505 93%,
-            #0e0400 100%
-          )`,
-          boxShadow: dropShadow,
-        }}
-      />
-
-      {/* Right end cap */}
-      <div
-        style={{
-          flexShrink: 0,
-          width: 22,
-          background: 'radial-gradient(ellipse at 38% 50%, #6b3010 0%, #3a1508 45%, #180700 100%)',
-          borderRadius: '0 5px 5px 0',
-        }}
-      />
-    </div>
+    />
   );
 }
 
-// ── Single Parchment Scroll ────────────────────────────────────────────────────
+const EMBER_SPOTS: EmberProps[] = [
+  { top: '3%',  left: '12%',  size: 5, delay: 0.0, color: 'radial-gradient(circle, rgba(255,180,0,0.9) 0%, rgba(255,80,0,0.5) 60%, transparent 100%)' },
+  { top: '1%',  left: '68%',  size: 7, delay: 0.7, color: 'radial-gradient(circle, rgba(255,140,0,0.95) 0%, rgba(255,60,0,0.45) 60%, transparent 100%)' },
+  { top: '5%',  left: '42%',  size: 4, delay: 1.3, color: 'radial-gradient(circle, rgba(255,200,50,0.9) 0%, rgba(255,100,0,0.4) 60%, transparent 100%)' },
+  { top: '2%',  left: '85%',  size: 6, delay: 0.4, color: 'radial-gradient(circle, rgba(255,160,0,0.85) 0%, rgba(200,50,0,0.4) 60%, transparent 100%)' },
+  { top: '94%', left: '22%',  size: 8, delay: 1.1, color: 'radial-gradient(circle, rgba(255,120,0,1.0) 0%, rgba(255,50,0,0.6) 55%, transparent 100%)' },
+  { top: '96%', left: '55%',  size: 5, delay: 0.2, color: 'radial-gradient(circle, rgba(255,180,30,0.95) 0%, rgba(255,80,0,0.5) 60%, transparent 100%)' },
+  { top: '93%', left: '78%',  size: 7, delay: 1.6, color: 'radial-gradient(circle, rgba(255,140,0,0.9) 0%, rgba(200,40,0,0.5) 60%, transparent 100%)' },
+  { top: '97%', left: '8%',   size: 6, delay: 0.9, color: 'radial-gradient(circle, rgba(255,100,0,1.0) 0%, rgba(180,30,0,0.55) 55%, transparent 100%)' },
+];
+
+// ── Single Burned Parchment Scroll ────────────────────────────────────────────
 interface ParchmentScrollProps {
   content: string;
   isActive: boolean;
@@ -129,14 +141,13 @@ export function ParchmentScroll({
   renderContent,
 }: ParchmentScrollProps) {
   const innerRef = useRef<HTMLDivElement>(null);
-  // Active + not streaming: start at 0 for unroll animation. Otherwise: auto.
   const [displayHeight, setDisplayHeight] = useState<number | 'auto'>(
     isActive && !isStreaming ? 0 : 'auto'
   );
   const [textVisible, setTextVisible] = useState(!isActive || isStreaming);
   const didAnimate = useRef(false);
 
-  // One-shot unroll — only for finished (non-streaming) messages arriving for the first time
+  // One-shot unroll — only for finished (non-streaming) messages arriving fresh
   useLayoutEffect(() => {
     if (!isActive || isStreaming || didAnimate.current || !innerRef.current) return;
     didAnimate.current = true;
@@ -145,10 +156,9 @@ export function ParchmentScroll({
     setDisplayHeight(0);
     setTextVisible(false);
 
-    // Small delay so the browser registers height=0 before the transition target
     const t1 = setTimeout(() => {
       setDisplayHeight(fullH);
-      const t2 = setTimeout(() => setTextVisible(true), 820);
+      const t2 = setTimeout(() => setTextVisible(true), 600);
       return () => clearTimeout(t2);
     }, 40);
 
@@ -156,7 +166,7 @@ export function ParchmentScroll({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // When this scroll is de-activated (new message arrived), release to natural height
+  // When de-activated, release to natural height
   useEffect(() => {
     if (!isActive) {
       setDisplayHeight('auto');
@@ -171,18 +181,43 @@ export function ParchmentScroll({
         transform: isPrevious ? 'scale(0.985)' : 'scale(1)',
         transformOrigin: 'top center',
         transition: 'opacity 0.4s ease, transform 0.4s ease',
+        position: 'relative',
+        filter: isPrevious
+          ? 'drop-shadow(0 10px 20px rgba(0,0,0,0.6))'
+          : 'drop-shadow(0 20px 40px rgba(0,0,0,0.8)) drop-shadow(0 8px 15px rgba(255,100,0,0.35)) drop-shadow(0 4px 8px rgba(255,50,0,0.25))',
       }}
     >
-      <WoodenRoller position="top" />
+      {/* Ember spots — outside clip so they sit over the burned edges */}
+      {!isPrevious && EMBER_SPOTS.map((e, i) => (
+        <EmberSpot key={i} {...e} />
+      ))}
 
-      {/* Animated height wrapper — reveals parchment top-to-bottom like unrolling */}
+      {/* Bottom ambient fire glow */}
+      {!isPrevious && (
+        <div
+          className="scroll-bottom-glow"
+          style={{
+            position: 'absolute',
+            bottom: -8,
+            left: '10%',
+            right: '10%',
+            height: 30,
+            background: 'radial-gradient(ellipse at 50% 100%, rgba(255,100,0,0.55) 0%, rgba(255,50,0,0.2) 50%, transparent 100%)',
+            borderRadius: '50%',
+            pointerEvents: 'none',
+            zIndex: -1,
+          }}
+        />
+      )}
+
+      {/* Animated height wrapper — reveals scroll top-to-bottom like unrolling */}
       <div
         style={{
           height: displayHeight,
           overflow: 'hidden',
           transition:
             !isStreaming && isActive && typeof displayHeight === 'number' && displayHeight > 0
-              ? 'height 0.8s cubic-bezier(0.4, 0, 0.2, 1)'
+              ? 'height 1s cubic-bezier(0.4, 0, 0.2, 1)'
               : 'none',
         }}
       >
@@ -191,23 +226,47 @@ export function ParchmentScroll({
           ref={innerRef}
           style={{
             background: PARCHMENT_BG,
-            boxShadow: PARCHMENT_SHADOW,
-            clipPath: TORN_CLIP,
+            clipPath: SCROLL_CLIP,
+            position: 'relative',
           }}
         >
+          {/* Charcoal burn overlay — top 18% fades to near-black */}
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              background: 'linear-gradient(180deg, rgba(8,2,0,0.78) 0%, rgba(15,5,0,0.55) 6%, rgba(20,8,0,0.22) 14%, transparent 22%)',
+              pointerEvents: 'none',
+              zIndex: 1,
+            }}
+          />
+
+          {/* Fire gradient overlay — bottom 28% fades parchment→amber→charcoal */}
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              background: 'linear-gradient(0deg, rgba(5,1,0,0.88) 0%, rgba(12,4,0,0.72) 6%, rgba(30,10,0,0.50) 14%, rgba(60,20,0,0.22) 22%, transparent 32%)',
+              pointerEvents: 'none',
+              zIndex: 1,
+            }}
+          />
+
           {/* Scroll text zone */}
           <div
             style={{
-              padding: '30px 50px',
+              position: 'relative',
+              zIndex: 2,
+              padding: '35px 55px',
               fontFamily: "'Cinzel', 'Times New Roman', serif",
               fontStyle: 'italic',
-              color: '#2c1810',
-              fontSize: '1rem',
-              lineHeight: 1.9,
-              letterSpacing: '0.04em',
-              textShadow: '0 1px 2px rgba(255,255,255,0.3)',
+              fontWeight: 700,
+              color: '#1a0a05',
+              fontSize: '1.05rem',
+              lineHeight: 2,
+              letterSpacing: '0.06em',
               opacity: textVisible ? 1 : 0,
-              transition: 'opacity 0.35s ease',
+              transition: 'opacity 0.4s ease',
             }}
           >
             {renderContent(content, true)}
@@ -227,8 +286,6 @@ export function ParchmentScroll({
           </div>
         </div>
       </div>
-
-      <WoodenRoller position="bottom" />
     </div>
   );
 }
@@ -292,7 +349,6 @@ export default function ScrollChat({
   isStreaming,
   renderContent,
 }: ScrollChatProps) {
-  // IDs present on mount should not trigger the unroll animation
   const preloadedIds = useRef(new Set<number>());
   const initialized = useRef(false);
 
@@ -304,20 +360,18 @@ export default function ScrollChat({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Find last assistant message index
   let lastDmIdx = -1;
   for (let i = messages.length - 1; i >= 0; i--) {
     if (messages[i].role === 'assistant') { lastDmIdx = i; break; }
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 28, padding: '12px 0 24px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 36, padding: '12px 0 32px' }}>
       {messages.map((msg, idx) => {
         if (msg.role === 'user') {
           return <PlayerTablet key={msg.id} content={msg.content} />;
         }
 
-        // Only animate: positive ID (real server msg), not preloaded, and is the latest DM
         const isLatest = idx === lastDmIdx && !isStreaming;
         const isNew = msg.id > 0 && !preloadedIds.current.has(msg.id);
         const isActive = isLatest && isNew;
@@ -335,7 +389,6 @@ export default function ScrollChat({
         );
       })}
 
-      {/* Streaming scroll — grows as chunks arrive */}
       {isStreaming && streamingText && (
         <ParchmentScroll
           key="streaming"

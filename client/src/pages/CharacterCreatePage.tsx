@@ -23,6 +23,17 @@ const RACES = [
   { name: 'Dragonborn',emoji: '🐉', bonuses: { str:2, cha:1 },                          speed:30, desc:'Born of draconic power. Commands a fearsome breath weapon.', traits:['Draconic Ancestry (choose type)','Breath weapon once per rest','Resistance to ancestry damage type'] },
 ];
 
+const RACE_IMAGES: Record<string, string> = {
+  'Human':      '/race-human.png',
+  'Elf':        '/race-elf.png',
+  'Dwarf':      '/race-dwarf.png',
+  'Halfling':   '/race-halfling.png',
+  'Half-Orc':   '/race-halforc.png',
+  'Tiefling':   '/race-tiefling.png',
+  'Gnome':      '/race-gnome.png',
+  'Dragonborn': '/race-dragonborn.png',
+};
+
 const CLASSES = [
   { name:'Fighter',   emoji:'🗡️',  hitDie:10, primaryStat:'STR or DEX', spellSlots:0, maxSpellSlots:0, startingGold:150, startingAc:18, desc:'Master of every weapon and armour. The most durable warrior in any fight.', features:['Fighting Style (choose one)','Second Wind — d10+1 HP once per rest (bonus action)'], equipment:['Chain mail (AC 16)','Shield (+2 AC)','Longsword','2× Handaxe'], skills:['Athletics','Intimidation'], saves:['STR','CON'], cantrips:[], spells:[] },
   { name:'Wizard',    emoji:'🔮',  hitDie:6,  primaryStat:'INT',        spellSlots:2, maxSpellSlots:2, startingGold:120, startingAc:12, desc:'Master of arcane magic. Devastating power at the cost of fragility.', features:['Spellbook (learn new spells by copying)','Arcane Recovery — regain 1 spell slot once per rest'], equipment:['Quarterstaff','Spellbook','Component pouch'], skills:['Arcana','History'], saves:['INT','WIS'], cantrips:['Fire Bolt','Mage Hand','Light'], spells:['Magic Missile','Sleep','Shield','Burning Hands'] },
@@ -346,17 +357,24 @@ export default function CharacterCreatePage() {
               className={`choice-card text-left ${draft.race === race.name ? 'selected' : ''}`}
               onClick={() => setDraft(d => ({ ...d, race: race.name }))}
               data-testid={`race-${race.name}`}
+              style={{ padding: 0, overflow: 'hidden' }}
             >
-              <div className="text-2xl mb-2">{race.emoji}</div>
-              <div className="font-display text-sm tracking-wide mb-1" style={{ color: 'hsl(38 28% 84%)' }}>{race.name}</div>
-              <div className="text-xs mb-2" style={{ color: 'hsl(38 14% 48%)' }}>
-                {Object.entries(race.bonuses).map(([k, v]) => `+${v} ${k.toUpperCase()}`).join(', ')}
-              </div>
-              {draft.race === race.name && (
-                <div className="text-xs mt-2 pt-2 border-t border-orange-800/40" style={{ color: 'hsl(38 20% 58%)' }}>
-                  {race.desc}
+              <img
+                src={RACE_IMAGES[race.name]}
+                alt={race.name}
+                style={{ width: '100%', height: 160, objectFit: 'cover', objectPosition: 'top center', borderRadius: '6px 6px 0 0', display: 'block' }}
+              />
+              <div style={{ padding: '12px 14px' }}>
+                <div className="font-display text-sm tracking-wide mb-1" style={{ color: '#e8d5a3', fontFamily: "'Cinzel', serif" }}>{race.name}</div>
+                <div className="text-xs mb-2" style={{ color: '#e8d5a3', opacity: 0.62, fontFamily: "'Cinzel', serif" }}>
+                  {Object.entries(race.bonuses).map(([k, v]) => `+${v} ${k.toUpperCase()}`).join(', ')}
                 </div>
-              )}
+                {draft.race === race.name && (
+                  <div className="text-xs mt-2 pt-2 border-t border-orange-800/40" style={{ color: 'hsl(38 20% 58%)' }}>
+                    {race.desc}
+                  </div>
+                )}
+              </div>
             </button>
           ))}
         </div>
