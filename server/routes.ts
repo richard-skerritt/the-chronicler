@@ -361,13 +361,4 @@ export async function registerRoutes(httpServer: Server, app: Express) {
           res.setHeader('Content-Length', buf.byteLength);
           return res.send(Buffer.from(buf));
         }
-        console.error('ElevenLabs server error:', elRes.status, await elRes.text().catch(() => ''));
-      } catch (err) {
-        console.error('ElevenLabs server failed:', err);
-      }
-    }
-
-    // No key provided or all providers failed
-    res.json({ audio: null, fallback: true });
-  });
-}
+        console.error('ElevenLabs server error:', elRes.status, awa

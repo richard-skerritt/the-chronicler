@@ -1036,36 +1036,4 @@ function MessageBubble({
   return (
     <div className="message-enter group">
       <div className="flex items-start gap-3">
-        {/* DM icon — gilt scroll */}
-        <div
-          className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mt-1 flex-shrink-0"
-          style={{
-            background: 'linear-gradient(160deg, hsl(38 55% 28%), hsl(36 48% 20%))',
-            border: '1px solid hsl(var(--gold-dark) / 0.6)',
-            boxShadow: '0 0 8px hsl(var(--gold) / 0.2)',
-          }}
-        >
-          <Scroll className="h-3.5 w-3.5" style={{ color: 'hsl(var(--gold))' }} />
-        </div>
-
-        {/* Parchment manuscript panel */}
-        <div className="flex-1 manuscript-entry rounded-lg p-4 pl-6 dm-content relative">
-          <div className="manuscript-prose">
-            {renderContent(message.content, true)}
-          </div>
-
-          {/* Speak button — visible on hover */}
-          <button
-            onClick={() => onSpeak(message.content)}
-            className="mt-2 opacity-0 group-hover:opacity-70 hover:!opacity-100 transition-opacity font-display text-xs tracking-wide flex items-center gap-1"
-            style={{ color: 'hsl(32 45% 32%)' }}
-            data-testid={`button-speak-${message.id}`}
-          >
-            <Volume2 className="h-3 w-3" />
-            {ttsActive ? 'Silence the Voice' : 'Speak this aloud'}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
+        {/* DM

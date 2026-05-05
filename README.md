@@ -1,4 +1,4 @@
-# 🎲 The Chronicler — AI Tabletop Game Master
+# 🐉 The Chronicler — AI Tabletop Game Master
 
 > *"Roll your dice. Narrate your actions. Let the story come alive."*
 
@@ -14,122 +14,77 @@ This started as a side project to learn AI development whilst looking after kids
 - 🔊 **Theatrical narration** — ElevenLabs TTS with a custom-designed British narrator voice
 - 🧙 **D&D Character Creation** — proper 5e character creation wizard (race, class, ability scores, background)
 - 🏰 **Heroes of the Borderlands** — built around the official D&D 2025 Starter Set campaign
-- ✨ **Immersive visuals** — floating ember particles, parallax dungeon stone background, fire glow effects
 - 📖 **Adventurer's Guide** — built-in tutorial for people who've never played D&D before
 - 💾 **Session persistence** — SQLite database keeps your campaign going between sessions
 
 ---
 
-## Tech stack
+## The look & feel
 
-| Layer | What I used |
-|-------|-------------|
-| Frontend | React + TypeScript + Tailwind CSS v3 + shadcn/ui |
-| Backend | Node.js + Express |
-| AI / DM brain | Claude Sonnet (Anthropic) via streaming SSE |
-| Voice narration | ElevenLabs TTS v3 |
-| Database | SQLite + Drizzle ORM |
-| Routing | Wouter (hash-based, works in iframes) |
-| Build tool | Vite |
+The Chronicler is meant to feel like an **illuminated manuscript pulled into a flickering torch-lit hall** — heavy, atmospheric, theatrical. The latest visual overhaul moves the whole app away from generic dark-mode stone and into proper dark fantasy territory.
 
----
+### Dragon battle backdrop
 
-## Getting started
+Every page sits over a fixed full-bleed image of a **crimson dragon mid-battle** (`client/public/crimson_dragon_battle.png`), painted into `body { background-image }` in `client/src/index.css`. It's `background-attachment: fixed` so it stays put while the chat scrolls, and is veiled behind a dark semi-transparent overlay (`.page-overlay`) so text stays readable.
 
-### 1. Clone and install
+### Dark fantasy colour scheme
 
-```bash
-git clone https://github.com/skerrittrichard-hash/the-chronicler.git
-cd the-chronicler
-npm install
-```
+The palette is built around a handful of tokens, expressed as HSL CSS variables in `client/src/index.css`:
 
-### 2. Set up your environment
+| Token | Where it shows |
+|-------|----------------|
+| **Deep midnight purple** (`246 28% 5%`) | Page surfaces, panel backgrounds |
+| **Ember fire** (`18 90% 52%`) | Primary accent — buttons, glows, narration emphasis |
+| **Aged gold** (`42 88% 56%`) | Borders, secondary accents, "save" actions |
+| **Deep forest** (`148 30% 11%`) | Secondary surfaces, calm UI elements |
+| **Blood crimson** (`0 72% 45%`) | Destructive / danger — combat, low HP |
+| **Parchment / vellum / ink** | Reserved for the manuscript and scroll surfaces |
 
-Copy the example env file:
+### Cinzel + Cinzel Decorative typography
 
-```bash
-cp .env.example .env
-```
+Three fonts, all loaded from Google Fonts in `client/index.html`:
 
-Then fill in your keys:
+- **Cinzel Decorative** — titles, headings, buttons (`<h1>` through `<h6>`, every `<button>`)
+- **Cinzel** — display text, body copy, scroll narration
+- **Lora** — long-form `.narration` paragraphs (italic *em* → ember-coloured)
 
-```
-VITE_ELEVENLABS_API_KEY=your_key_here     # Free at elevenlabs.io
-VITE_ELEVENLABS_VOICE_ID=george           # Or your custom voice ID
-```
+The `.font-display` utility class is wired through everywhere a heading or call-to-action lives.
 
-The app uses Anthropic's Claude for the AI. You'll need an API key from [console.anthropic.com](https://console.anthropic.com) set as `ANTHROPIC_API_KEY` in your environment.
+### Animated parchment scroll for DM narration
 
-### 3. Run it
+DM responses now render as a **burned parchment scroll** that unrolls top-to-bottom on arrival (one-shot, ~1 second cubic-bezier ease, then a 600ms text fade-in). It lives in `client/src/components/ScrollDisplay.tsx` and exports three pieces:
 
-```bash
-npm run dev
-```
+- `ParchmentScroll` — single message, with the unroll animation, ember spots and bottom fire glow
+- `PlayerTablet` — a dark stone plaque for the player's own actions
+- `ScrollChat` — the full chat-area renderer used by `GamePage`
 
-Opens at `http://localhost:5000`. That's it.
+The scroll has a hand-built SVG bezier mask (`TORN_MASK`) for the organic torn shape, an aged-parchment gradient (charred edges → warm centre → charred edges), and two burn overlays — charcoal at the top, flame-amber at the bottom.
 
----
+### Character race images replacing emojis
 
-## How to play
+The character creation wizard's race step now shows **proper portrait artwork** instead of emoji glyphs. Eight race illustrations live in `client/public/`:
 
-1. Click **Begin Adventure** to create your D&D character (or use the default party)
-2. Place your physical dice and game tokens on your table
-3. Type what your character does — The Chronicler responds with narration
-4. When the DM asks you to roll, pick up your physical dice and type the result back
-5. Check the **? Help** tab on the right panel if you're new to D&D — it explains everything
+- `race-human.png`
+- `race-elf.png`
+- `race-dwarf.png`
+- `race-halfling.png`
+- `race-halforc.png`
+- `race-tiefling.png`
+- `race-gnome.png`
+- `race-dragonborn.png`
 
----
+They're mapped onto the race cards in `client/src/pages/CharacterCreatePage.tsx`.
 
-## Project structure
+### Work in progress — burned/torn scroll edges
 
-```
-the-chronicler/
-├── client/              # React frontend
-│   └── src/
-│       ├── pages/       # LandingPage, GamePage, CharacterCreatePage, SettingsPage
-│       ├── components/  # CharacterPanel, CombatTracker, DiceGuide, etc.
-│       └── lib/         # tts.ts, preferences.ts, queryClient.ts
-├── server/              # Express backend
-│   ├── routes.ts        # API routes (/api/chat, /api/tts, /api/campaign)
-│   ├── systemPrompt.ts  # The DM's personality and rules
-│   └── db.ts            # Database setup
-└── shared/
-    └── schema.ts        # Shared TypeScript types
-```
+The torn-edge mask is implemented with cubic bezier curves to look hand-burned, but it's **not done yet**. Specifically:
+
+- The edge silhouette is too uniform — needs more irregular, fire-eaten variation
+- Ember spots are static positions; **animation along the edges is still to come** (they should drift / pulse along the burn line, not just blink in place)
+- The charcoal gradient at the top reads as a hard band rather than a soft progressive char
+
+This is the next visual polish pass. The structure is in `ScrollDisplay.tsx` — `_TORN_PATH`, `EMBER_SPOTS`, and the two burn-overlay divs are the bits to iterate on.
 
 ---
 
-## What's next
-
-This is a work in progress. Things I want to add:
-
-- [ ] Proper combat initiative tracker with animated turn order
-- [ ] Sound effects (doors, combat, ambience) layered under narration
-- [ ] Multiple campaign support / campaign picker
-- [ ] Save/load named sessions
-- [ ] PWA support (installable as a desktop app)
-- [ ] Electron packaging (proper downloadable app)
-- [ ] Support for custom campaign uploads
-
----
-
-## A note on API keys
-
-The app needs ElevenLabs for voice narration — their free tier gives 10,000 characters/month, which is enough to try it out. The Starter plan (£4/month) gives 30,000, which is comfortable for regular play.
-
-For the AI brain, Anthropic's Claude is used. You'll need your own API key — pay-as-you-go, a typical session costs fractions of a penny.
-
-Neither key is included in this repo (they're in `.env` which is gitignored). Check `.env.example` for the format.
-
----
-
-## Built by
-
-Richard Skerritt — Cybersecurity professional learning AI development one project at a time.
-
-[LinkedIn](https://linkedin.com/in/richard-skerritt-25558254) · [GitHub](https://github.com/skerrittrichard-hash)
-
----
-
-*If you try it, let me know what you think. Pull requests and issues welcome — this thing is very much alive and changing.*
+## Tech

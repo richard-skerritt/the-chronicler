@@ -214,13 +214,3 @@ export default function LandingPage() {
 
       {/* ── Bottom caption ── */}
       <div className="absolute bottom-6 left-0 right-0 flex justify-center pointer-events-none">
-        <p
-          className="font-display tracking-[0.28em] text-xs"
-          style={{ color: 'hsl(246 20% 32%)', letterSpacing: '0.28em' }}
-        >
-          HEROES OF THE BORDERLANDS · POWERED BY CLAUDE AI
-        </p>
-      </div>
-    </div>
-  );
-}

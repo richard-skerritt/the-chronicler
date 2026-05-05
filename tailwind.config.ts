@@ -99,38 +99,3 @@ export default {
         },
       },
       fontFamily: {
-        sans:    ["var(--font-sans)"],
-        serif:   ["var(--font-serif)"],
-        mono:    ["var(--font-mono)"],
-        display: ["'Cinzel Decorative'", "'Cinzel'", "'Times New Roman'", "serif"],
-        body:    ["'Lora'", "'Georgia'", "serif"],
-        cinzel:  ["'Cinzel'", "'Times New Roman'", "serif"],
-      },
-      keyframes: {
-        "accordion-down": {
-          from: { height: "0" },
-          to: { height: "var(--radix-accordion-content-height)" },
-        },
-        "accordion-up": {
-          from: { height: "var(--radix-accordion-content-height)" },
-          to: { height: "0" },
-        },
-        "gilt-shimmer": {
-          "0%":   { backgroundPosition: "-200% center" },
-          "100%": { backgroundPosition: "200% center" },
-        },
-        "vignette-pulse": {
-          "0%, 100%": { opacity: "1" },
-          "50%":       { opacity: "0.88" },
-        },
-      },
-      animation: {
-        "accordion-down": "accordion-down 0.2s ease-out",
-        "accordion-up":   "accordion-up 0.2s ease-out",
-        "gilt-shimmer":   "gilt-shimmer 3s linear infinite",
-        "vignette-pulse": "vignette-pulse 5s ease-in-out infinite",
-      },
-    },
-  },
-  plugins: [require("tailwindcss-animate"), require("@tailwindcss/typography")],
-} satisfies Config;

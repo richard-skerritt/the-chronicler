@@ -42,7 +42,4 @@ export default function ChroniclerLogo({ className = 'w-8 h-8', style }: Props) 
       
       {/* Eye/rune in center (mystical element) */}
       <ellipse cx="32" cy="32" rx="5" ry="3" stroke="currentColor" strokeWidth="1" strokeOpacity="0.5" />
-      <circle cx="32" cy="32" r="1.5" fill="currentColor" fillOpacity="0.7" />
-    </svg>
-  );
-}
+      <circle cx="32" cy="32" r="1.5" fil

@@ -747,25 +747,4 @@ export default function CharacterCreatePage() {
   // ─────────────────────────────────────────────────────────────────────────
 
   return (
-    <div
-      className="min-h-screen page-overlay"
-      data-testid="character-create-page"
-    >
-      {/* Ambient top gradient */}
-      <div
-        className="fixed inset-x-0 top-0 h-1 pointer-events-none z-50"
-        style={{ background: 'linear-gradient(90deg, transparent, hsl(18 90% 52% / 0.6), hsl(42 88% 58% / 0.8), hsl(18 90% 52% / 0.6), transparent)' }}
-      />
-
-      <div className="max-w-3xl mx-auto px-4 py-10">
-        <StepHeader />
-
-        {step === 1 && <Step1_Race />}
-        {step === 2 && <Step2_Class />}
-        {step === 3 && <Step3_AbilityScores />}
-        {step === 4 && <Step4_Background />}
-        {step === 5 && <Step5_Review />}
-      </div>
-    </div>
-  );
-}
+  

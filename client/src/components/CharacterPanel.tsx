@@ -88,12 +88,4 @@ export default function CharacterPanel({ campaign }: Props) {
         <HPBar current={campaign.zellaHp} max={campaign.zellaMaxHp} />
         <div className="flex items-center justify-between mt-1">
           <div className="flex items-center gap-2">
-            <span className="text-xs" style={{ color: 'hsl(42 60% 48% / 0.75)' }}>💰 {campaign.zellaGold} GP</span>
-            <SpellPips used={zellaUsed} max={campaign.zellaMaxSpellSlots} />
-          </div>
-          <span className="text-xs text-muted-foreground/50">Initiative +2</span>
-        </div>
-      </div>
-    </div>
-  );
-}
+            <span className="text-xs" style={{ color: 'hsl(42 60% 48% / 0.75)' }}>💰 {campaign.zellaGold} GP</sp

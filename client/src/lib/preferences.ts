@@ -29,14 +29,5 @@ function saveStored(p: VoicePrefs): void {
 const stored = loadStored();
 
 const prefs: VoicePrefs = {
-  elevenLabsApiKey: stored.elevenLabsApiKey ?? import.meta.env.VITE_ELEVENLABS_API_KEY ?? '',
-  voiceName:        stored.voiceName        ?? import.meta.env.VITE_ELEVENLABS_VOICE_ID ?? 'george',
-};
-
-export const Prefs = {
-  get voice(): VoicePrefs { return { ...prefs }; },
-  setElevenLabsApiKey(k: string) { prefs.elevenLabsApiKey = k; saveStored(prefs); },
-  setVoiceName(v: string)        { prefs.voiceName = v;        saveStored(prefs); },
-};
-
-export type VoiceProvider = 'elevenlabs';
+  // Use || not ?? so a stored empty string still falls through to the env var
+  elevenLabsApiKey: stored.elevenLabsApiKey || import.meta.env.VITE_ELEVE

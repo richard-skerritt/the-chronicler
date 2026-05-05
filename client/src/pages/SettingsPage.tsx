@@ -446,13 +446,4 @@ export default function SettingsPage() {
           <div>
             <h2 className="font-display text-amber-300 text-sm tracking-widest mb-3">ABOUT THE CHRONICLER</h2>
             <div className="space-y-2 text-sm text-muted-foreground leading-relaxed">
-              <p>The Chronicler is an AI-powered Game Master for tabletop RPG adventures. Players use physical game components — maps, tokens, and dice — while The Chronicler handles narration, NPC roleplay, rules adjudication, and immersive storytelling.</p>
-              <p className="text-xs">Built with Claude AI (Anthropic) · ElevenLabs TTS · React + Express</p>
-              <p className="text-xs text-amber-500/60">Based on the D&amp;D Heroes of the Borderlands (2025 Starter Set) campaign</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+              <p>The Chronicler is an AI-

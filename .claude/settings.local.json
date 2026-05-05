@@ -12,7 +12,16 @@
       "PowerShell(npm view *)",
       "Bash(npm run *)",
       "PowerShell(cd \"C:\\\\Users\\\\PC\\\\Documents\\\\Claude\\\\Projects\\\\Chronicler Dev\"; $env:NODE_ENV = \"development\"; npx tsx server/index.ts 2>&1)",
-      "PowerShell(Start-Process \"http://localhost:5000\"; Start-Sleep -Seconds 3; Write-Host \"Browser opened\")"
+      "PowerShell(Start-Process \"http://localhost:5000\"; Start-Sleep -Seconds 3; Write-Host \"Browser opened\")",
+      "PowerShell(Start-Process \"http://localhost:5000\")",
+      "Bash(npx tsc *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(Start-Sleep -Seconds 4)",
+      "Bash(Get-Content \"C:\\\\Users\\\\PC\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-PC-Documents-Claude-Projects-Chronicler-Dev\\\\d21e3fb4-5523-4dd6-8706-1e0ef0f92ee6\\\\tasks\\\\byppvv63f.output\" -Tail 10)",
+      "Bash(Get-Content \"C:\\\\Users\\\\PC\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-PC-Documents-Claude-Projects-Chronicler-Dev\\\\d21e3fb4-5523-4dd6-8706-1e0ef0f92ee6\\\\tasks\\\\byppvv63f.output\" -Tail 5)",
+      "Bash(netstat -ano)",
+      "Bash(findstr :5000)"
     ]
   }
 }

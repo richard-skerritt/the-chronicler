@@ -272,13 +272,3 @@ export function speakWithBrowser(
   utterance.pitch  = options.pitch;
   utterance.volume = options.volume;
   utterance.onstart = () => options.onStart?.();
-  utterance.onend   = () => options.onEnd?.();
-  utterance.onerror = (e) => options.onError?.(e.error);
-
-  // Chrome sometimes needs a small delay before speaking
-  setTimeout(() => window.speechSynthesis.speak(utterance), 50);
-}
-
-export function getVoices(): SpeechSynthesisVoice[] {
-  return window.speechSynthesis?.getVoices() ?? [];
-}
