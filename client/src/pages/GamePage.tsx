@@ -210,12 +210,11 @@ function renderContent(text: string, onParchment = false): React.ReactNode {
         }
         if (chunk.startsWith('*') && chunk.endsWith('*') && chunk.length > 2) {
           return (
-            <em key={j}
-              className="italic"
-              style={{ color: onParchment ? '#c8580a' : 'hsl(26 90% 65%)' }}
+            <span key={j}
+              style={{ color: onParchment ? '#c8580a' : 'hsl(26 90% 65%)', fontWeight: 700 }}
             >
               {chunk.slice(1, -1)}
-            </em>
+            </span>
           );
         }
         if (chunk.startsWith('`') && chunk.endsWith('`')) {

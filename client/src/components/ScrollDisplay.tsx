@@ -28,62 +28,50 @@ const PARCHMENT_BG = `
   )
 `;
 
-// ── Burned clip-path: top edge charred, bottom in flame silhouette ─────────────
-// Top corners burned deep (left 30px, right 20px); midpoints vary 10–25px
-// Sides have irregular notches; bottom flames 40–60px variation
-const SCROLL_CLIP = `polygon(
-  30px 0%,
-  8% 12px, 16% 10px, 24% 18px, 32% 8px, 40% 15px, 48% 11px,
-  56% 20px, 64% 9px,  72% 16px, 80% 12px, 88% 18px,
-  calc(100% - 20px) 0%,
-  calc(100% - 4px) 8%,
-  calc(100% - 6px) 20%,
-  calc(100% - 3px) 30%,
-  calc(100% - 18px) 35%, calc(100% - 3px) 38%,
-  calc(100% - 5px) 50%,
-  calc(100% - 4px) 58%,
-  calc(100% - 20px) 60%, calc(100% - 4px) 63%,
-  calc(100% - 6px) 75%,
-  calc(100% - 3px) 85%,
-  calc(100% - 5px) 90%,
-  calc(100% - 3px) 94%,
-  calc(100% - 8px) 96%,
-  calc(100% - 20px) 97%,
-  calc(100% - 38px) 98.5%,
-  calc(100% - 55px) 97.5%,
-  calc(100% - 62px) 100%,
-  calc(100% - 72px) 96%,
-  calc(100% - 85px) 98%,
-  calc(100% - 95px) 94%,
-  calc(100% - 108px) 99%,
-  calc(100% - 118px) 95%,
-  calc(100% - 130px) 100%,
-  calc(100% - 145px) 96%,
-  calc(100% - 158px) 99%,
-  calc(100% - 172px) 93%,
-  calc(100% - 188px) 97%,
-  calc(100% - 200px) 100%,
-  calc(100% - 215px) 94%,
-  calc(100% - 228px) 98%,
-  calc(100% - 244px) 96%,
-  calc(100% - 255px) 100%,
-  calc(100% - 268px) 95%,
-  calc(100% - 280px) 99%,
-  55px 98%,
-  42px 100%,
-  28px 96%,
-  14px 99%,
-  5px 94%,
-  3px 85%,
-  6px 75%,
-  3px 63%,
-  18px 60%, 3px 58%,
-  5px 50%,
-  3px 38%,
-  18px 35%, 4px 30%,
-  6px 20%,
-  4px 8%
-)`;
+// ── SVG mask — organic torn/burned edges using bezier curves ──────────────────
+// viewBox 0 0 1000 1000, preserveAspectRatio="none" so it stretches to fill.
+// Top: gentle burned undulations. Sides: soft organic wobble + 2 notches each.
+// Bottom: larger flame silhouette curves. All edges use C (cubic bezier) only.
+const _TORN_PATH = [
+  'M38 0',
+  // top edge left→right
+  'C55 8,80 3,108 10 C135 16,165 5,192 11 C220 15,248 4,275 9',
+  'C302 13,330 5,360 10 C390 14,420 3,450 9 C480 14,510 5,540 10',
+  'C570 15,600 4,630 9 C660 13,688 5,715 11 C742 16,770 4,798 9',
+  'C826 13,852 5,878 10 C904 14,932 4,962 0',
+  // top-right burned corner
+  'C972 0,980 2,984 14 C989 24,992 34,990 46',
+  // right edge top→bottom — notch at ~35% then ~60%
+  'C995 62,988 82,993 102 C998 122,987 145,993 168 C998 190,988 215,993 238',
+  'C997 260,985 280,992 302 C997 322,986 335,982 348 C986 362,993 372,997 390',
+  'C1001 408,990 430,994 452 C998 472,988 495,993 518',
+  'C997 540,988 558,993 578 C998 594,986 604,982 618 C986 630,993 642,997 662',
+  'C1001 682,990 705,994 728 C998 750,988 773,993 795',
+  'C997 817,987 840,992 862 C996 884,988 906,992 928 C996 950,988 966,982 978',
+  // bottom-right corner into bottom edge
+  'C974 988,964 996,950 994',
+  // bottom edge right→left — organic flame silhouette
+  'C928 990,908 1012,886 1000 C864 987,842 1008,820 1000 C798 1013,776 994,754 1002',
+  'C732 1010,710 993,688 1000 C666 1008,644 995,622 1002 C600 1009,578 993,556 1000',
+  'C534 1007,512 994,490 1000 C468 1008,446 1015,424 1000 C402 984,380 1007,358 1000',
+  'C336 1009,314 994,292 1000 C270 1007,248 995,226 1002 C204 1009,182 994,160 1000',
+  'C138 1007,116 1013,94 998 C72 982,50 1005,36 1000',
+  'C24 1003,14 998,10 990',
+  // bottom-left corner into left edge
+  'C5 980,2 968,5 954',
+  // left edge bottom→top — notch at ~75% then ~20%
+  'C9 932,2 910,5 888 C9 866,1 844,4 822 C8 800,1 778,5 756',
+  'C9 738,16 728,19 715 C14 702,6 692,2 678',
+  'C6 655,0 632,3 608 C7 585,1 562,4 538',
+  'C8 515,1 492,4 468 C8 445,1 422,4 398 C8 375,1 352,4 328',
+  'C8 308,16 296,18 282 C14 268,6 258,2 242',
+  'C6 218,0 195,3 172 C7 148,1 125,4 102 C8 78,1 55,3 30',
+  // top-left burned corner back to start
+  'C8 20,16 8,38 0Z',
+].join(' ');
+
+const _TORN_SVG = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1000 1000' preserveAspectRatio='none'><rect width='1000' height='1000' fill='black'/><path fill='white' d='${_TORN_PATH}'/></svg>`;
+const TORN_MASK = `url("data:image/svg+xml,${encodeURIComponent(_TORN_SVG)}")`;
 
 // ── Ember spot component ───────────────────────────────────────────────────────
 interface EmberProps {
@@ -226,7 +214,10 @@ export function ParchmentScroll({
           ref={innerRef}
           style={{
             background: PARCHMENT_BG,
-            clipPath: SCROLL_CLIP,
+            WebkitMaskImage: TORN_MASK,
+            maskImage: TORN_MASK,
+            WebkitMaskSize: '100% 100%',
+            maskSize: '100% 100%',
             position: 'relative',
           }}
         >
@@ -259,7 +250,7 @@ export function ParchmentScroll({
               zIndex: 2,
               padding: '35px 55px',
               fontFamily: "'Cinzel', 'Times New Roman', serif",
-              fontStyle: 'italic',
+              fontStyle: 'normal',
               fontWeight: 700,
               color: '#1a0a05',
               fontSize: '1.05rem',
