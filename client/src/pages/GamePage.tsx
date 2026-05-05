@@ -12,6 +12,7 @@ import CombatTracker from '@/components/CombatTracker';
 import DiceHelper from '@/components/DiceHelper';
 import DiceGuide from '@/components/DiceGuide';
 import ChroniclerLogo from '@/components/ChroniclerLogo';
+import ScrollChat from '@/components/ScrollDisplay';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -211,7 +212,7 @@ function renderContent(text: string, onParchment = false): React.ReactNode {
           return (
             <em key={j}
               className="italic"
-              style={{ color: onParchment ? 'hsl(14 80% 38%)' : 'hsl(26 90% 65%)' }}
+              style={{ color: onParchment ? '#c8580a' : 'hsl(26 90% 65%)' }}
             >
               {chunk.slice(1, -1)}
             </em>
@@ -753,7 +754,7 @@ export default function GamePage() {
         {/* ── Center: Chat Feed ── */}
         <main className="flex-1 flex flex-col overflow-hidden">
           <ScrollArea className="flex-1 px-4 py-4">
-            <div className="max-w-2xl mx-auto space-y-4 pb-4">
+            <div className="w-full pb-4">
               {/* Welcome state (no messages, not in demo) */}
               {!isDemoMode && messages.length === 0 && !streamingText && (
                 <div className="text-center py-12 space-y-4">
@@ -817,11 +818,11 @@ export default function GamePage() {
                 </div>
               )}
 
-              {/* Demo mode messages */}
+              {/* Demo mode */}
               {isDemoMode && (
                 <>
                   {/* Demo banner */}
-                  <div className="flex items-center justify-between bg-amber-950/30 border border-amber-800/40 rounded-lg px-3 py-2">
+                  <div className="flex items-center justify-between bg-amber-950/30 border border-amber-800/40 rounded-lg px-3 py-2 mb-4">
                     <div className="flex items-center gap-2">
                       <Scroll className="h-3.5 w-3.5 text-amber-500" />
                       <span className="font-display text-amber-400 text-xs tracking-wide">DEMO MODE</span>
@@ -836,41 +837,21 @@ export default function GamePage() {
                     </button>
                   </div>
 
-                  {/* Demo messages */}
-                  {demoMessages.map((msg, idx) =>
-                    msg.role === 'player' ? (
-                      <div key={idx} className="flex justify-end message-enter">
-                        <div className="max-w-xs lg:max-w-md">
-                          <div className="player-bubble rounded-lg px-4 py-2.5 text-sm font-display tracking-wide" style={{ color: 'hsl(40 22% 70%)' }}>
-                            {msg.content}
-                          </div>
-                          <p className="font-display text-xs tracking-widest text-right mt-1" style={{ color: 'hsl(42 18% 34%)' }}>— THE ADVENTURER</p>
-                        </div>
-                      </div>
-                    ) : (
-                      <div key={idx} className="flex items-start gap-3 message-enter">
-                        <div
-                          className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
-                          style={{
-                            background: 'linear-gradient(160deg, hsl(38 55% 28%), hsl(36 48% 20%))',
-                            border: '1px solid hsl(var(--gold-dark) / 0.6)',
-                            boxShadow: '0 0 8px hsl(var(--gold) / 0.2)',
-                          }}
-                        >
-                          <Scroll className="h-3.5 w-3.5" style={{ color: 'hsl(var(--gold))' }} />
-                        </div>
-                        <div className="flex-1 manuscript-entry rounded-lg p-4 pl-6 dm-content relative">
-                          <div className="manuscript-prose">
-                            {renderContent(msg.content, true)}
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  )}
+                  {/* Demo messages as parchment scrolls */}
+                  <ScrollChat
+                    messages={demoMessages.map((m, i) => ({
+                      id: -(i + 1),
+                      role: m.role === 'player' ? 'user' as const : 'assistant' as const,
+                      content: m.content,
+                    }))}
+                    streamingText={streamingText}
+                    isStreaming={isStreaming}
+                    renderContent={renderContent}
+                  />
 
                   {/* Advance / End Demo button */}
                   {!isStreaming && !ttsActive && demoMessages.length > 0 && (
-                    <div className="text-center pt-2">
+                    <div className="text-center pt-4">
                       {demoStep < DEMO_STEPS.length ? (
                         <button
                           onClick={advanceDemo}
@@ -897,41 +878,18 @@ export default function GamePage() {
                 </>
               )}
 
-              {/* Real message history (hidden during demo) */}
-              {!isDemoMode && messages.map((msg) => (
-                <MessageBubble
-                  key={msg.id}
-                  message={msg}
-                  onSpeak={speakMessage}
-                  ttsActive={ttsActive}
+              {/* Real messages — parchment scrolls for DM, dark tablets for player */}
+              {!isDemoMode && (
+                <ScrollChat
+                  messages={messages.map(m => ({
+                    id: m.id,
+                    role: m.role as 'user' | 'assistant',
+                    content: m.content,
+                  }))}
+                  streamingText={streamingText}
+                  isStreaming={isStreaming}
+                  renderContent={renderContent}
                 />
-              ))}
-
-              {/* Streaming response */}
-              {streamingText && (
-                <div className="message-enter">
-                  <div className="flex items-start gap-3">
-                    <div
-                      className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
-                      style={{
-                        background: 'linear-gradient(160deg, hsl(38 55% 28%), hsl(36 48% 20%))',
-                        border: '1px solid hsl(var(--gold-dark) / 0.6)',
-                        boxShadow: '0 0 8px hsl(var(--gold) / 0.2)',
-                      }}
-                    >
-                      <Scroll className="h-3.5 w-3.5" style={{ color: 'hsl(var(--gold))' }} />
-                    </div>
-                    <div className="flex-1 manuscript-entry rounded-lg p-4 pl-6 dm-content relative">
-                      <div className="manuscript-prose">
-                        {renderContent(streamingText, true)}
-                        <span
-                          className="inline-block w-0.5 h-4 animate-pulse ml-0.5 rounded-full"
-                          style={{ background: 'hsl(var(--fire))' }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
               )}
 
               <div ref={chatEndRef} />
@@ -1042,7 +1000,8 @@ export default function GamePage() {
   );
 }
 
-// Individual message bubble component
+// (MessageBubble replaced by ScrollChat / ParchmentScroll in ScrollDisplay.tsx)
+// Keep this stub to avoid TypeScript errors on any remaining reference
 function MessageBubble({
   message,
   onSpeak,
